@@ -22,7 +22,7 @@ import type {
 } from "@/types/api";
 
 export const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL || "https://kart-gram.vercel.app"}/api`,
+  baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
