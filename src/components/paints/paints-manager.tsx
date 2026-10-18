@@ -1,22 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Badge,
-  Button,
-  Caption,
-  Cell,
-  ColorInput,
-  IconButton,
-  Input,
-  Placeholder,
-  Section,
-  Select,
-  Spinner,
-  Subheadline,
-  Switch,
-  Title,
-} from "@telegram-apps/telegram-ui";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { parseApiError } from "@/services/apiClient";
 import {
   useCreatePaintMutation,
@@ -26,12 +11,13 @@ import {
 } from "@/hooks/use-catalog-queries";
 import { useCatalogFilters } from "@/hooks/use-catalog-filters";
 import { UnlockType, type CreatePaintInput, type Paint } from "@/types/api";
-import { UNLOCK_TYPE_META } from "@/lib/utils";
-import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
-import { CatalogToolbar } from "@/components/ui/catalog-toolbar";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import { Palette, Pencil, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { UnlockFieldsSection } from "@/components/ui/unlock-fields-section";
+import {
+  DataTableManager,
+  type DataTableColumn,
+} from "@/components/ui/data-table-manager";
+import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
 
 const INITIAL_PAINT_FORM: CreatePaintInput = {
   color: "#e63946",
@@ -82,14 +68,11 @@ export function PaintsManager() {
     filteredItems: filteredPaints,
   } = useCatalogFilters(paints);
 
-  // Create / Edit Modal
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPaint, setEditingPaint] = useState<Paint | null>(null);
   const [formData, setFormData] =
     useState<CreatePaintInput>(INITIAL_PAINT_FORM);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-
-  // Delete Confirmation Modal
   const [deletingPaint, setDeletingPaint] = useState<Paint | null>(null);
 
   const isSaving =
@@ -105,19 +88,20 @@ export function PaintsManager() {
     }
   };
 
-  const openCreateModal = () => {
+  const openCreate = () => {
     setEditingPaint(null);
     setFormData(INITIAL_PAINT_FORM);
     setFieldErrors({});
     setIsFormOpen(true);
   };
 
-  const openEditModal = (paint: Paint) => {
+  const openEdit = (paint: Paint) => {
     setEditingPaint(paint);
     setFormData({
-      color: paint.color ?? "",
+      color: paint.color,
       unlockType: paint.unlockType,
-      unlockValue: paint.unlockType === UnlockType.FREE ? 0 : paint.unlockValue,
+      unlockValue:
+        paint.unlockType === UnlockType.FREE ? 0 : paint.unlockValue,
       isActive: paint.isActive,
     });
     setFieldErrors({});
@@ -134,10 +118,14 @@ export function PaintsManager() {
 
   const validateClientForm = (): boolean => {
     const errs: Record<string, string[]> = {};
-    const trimmedColor = formData.color?.trim() ?? "";
+    const trimmedColor = (formData.color ?? "").trim();
 
-    if (trimmedColor.length > 50) {
-      errs.color = ["Il codice/nome colore non può superare i 50 caratteri."];
+    if (!trimmedColor) {
+      errs.color = ["Il colore esadecimale è obbligatorio."];
+    } else if (!isHexColor(trimmedColor)) {
+      errs.color = [
+        "Formato non valido: deve essere un esadecimale a 6 cifre con cancelletto (es. #FF0055).",
+      ];
     }
 
     if (
@@ -159,9 +147,8 @@ export function PaintsManager() {
     if (!validateClientForm()) return;
 
     setFieldErrors({});
-
     const payload: CreatePaintInput = {
-      color: formData.color?.trim() ? formData.color.trim() : null,
+      color: (formData.color ?? "").trim().toLowerCase(),
       unlockType: formData.unlockType,
       unlockValue:
         formData.unlockType === UnlockType.FREE
@@ -176,24 +163,16 @@ export function PaintsManager() {
           id: editingPaint.id,
           payload,
         });
-        toast.success(
-          `Vernice "${updated.color || `#${updated.id}`}" aggiornata con successo!`
-        );
+        toast.success(`Vernice "${updated.color ?? ""}" aggiornata.`);
       } else {
         const created = await createPaintMutation.mutateAsync(payload);
-        toast.success(
-          `Nuova vernice "${created.color || `#${created.id}`}" creata con successo!`
-        );
+        toast.success(`Vernice "${created.color ?? ""}" creata.`);
       }
       setIsFormOpen(false);
-    } catch (error) {
-      const parsed = parseApiError(error);
+    } catch (err) {
+      const parsed = parseApiError(err);
       if (parsed.fieldErrors) {
         setFieldErrors(parsed.fieldErrors);
-      } else if (parsed.status === 409) {
-        setFieldErrors({
-          color: [parsed.message || "Questo colore esiste già nel catalogo."],
-        });
       }
       toast.error(parsed.message);
     }
@@ -203,367 +182,168 @@ export function PaintsManager() {
     if (!deletingPaint) return;
     try {
       await deletePaintMutation.mutateAsync(deletingPaint.id);
-      toast.success(
-        `Vernice "${deletingPaint.color || `#${deletingPaint.id}`}" eliminata con successo.`
-      );
+      toast.success(`Vernice "${deletingPaint.color ?? ""}" eliminata.`);
       setDeletingPaint(null);
-    } catch (error) {
-      const parsed = parseApiError(error);
-      toast.error(parsed.message);
+    } catch (err) {
+      toast.error(parseApiError(err).message);
     }
   };
 
-  const colorPickerValue = isHexColor(formData.color)
-    ? formData.color!.trim()
-    : "#e63946";
+  const columns: DataTableColumn<Paint>[] = useMemo(
+    () => [
+      {
+        key: "color",
+        header: "Colore Esadecimale",
+        render: (paint) => (
+          <div className="flex items-center gap-2.5">
+            <span
+              className="h-5 w-5 shrink-0 rounded border border-tg-border"
+              style={{ backgroundColor: paint.color ?? "#ffffff" }}
+            />
+            <span className="font-mono text-xs font-semibold text-tg-primary uppercase">
+              {paint.color ?? "N/D"}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: "unlock",
+        header: "Sblocco & Costo",
+        render: (paint) => (
+          <UnlockTypeBadge
+            unlockType={paint.unlockType}
+            unlockValue={paint.unlockValue}
+          />
+        ),
+      },
+      {
+        key: "status",
+        header: "Stato",
+        align: "center",
+        render: (paint) => <StatusBadge isActive={paint.isActive} />,
+      },
+    ],
+    []
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Title level="1" className="!text-2xl !font-bold !text-zinc-100">
-              🎨 Gestione Vernici (Paints)
-            </Title>
-            <Badge type="number" mode="secondary">
-              {paints.length}
-            </Badge>
-          </div>
-          <Subheadline level="2" className="mt-1 !text-zinc-400">
-            Gestisci i colori e le verniciature delle auto, con anteprima visiva
-            e requisiti di sblocco
-          </Subheadline>
-        </div>
-      </div>
-
-      {/* Toolbar */}
-      <CatalogToolbar
+    <>
+      <DataTableManager<Paint>
+        title="Vernici & Livree"
+        description="Tavolozza colori esadecimali e personalizzazioni carrozzeria"
+        items={filteredPaints}
+        columns={columns}
+        getId={(paint) => paint.id}
+        getIsActive={(paint) => paint.isActive}
+        totalCount={paints.length}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        isError={isError}
+        errorMessage={isError ? parseApiError(error).message : undefined}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Cerca per codice o nome colore..."
+        searchPlaceholder="Cerca codice esadecimale (#3b82f6)..."
         unlockFilter={unlockFilter}
         onUnlockFilterChange={setUnlockFilter}
         onlyActive={onlyActive}
         onOnlyActiveChange={setOnlyActive}
         onRefresh={handleRefresh}
-        isRefreshing={isFetching}
-        onCreateNew={openCreateModal}
         createButtonLabel="Nuova Vernice"
-        totalCount={paints.length}
-        filteredCount={filteredPaints.length}
-      />
-
-      {/* Table inside Telegram UI Section */}
-      <Section
-        header="Elenco Vernici Catalogo"
-        className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50"
-      >
-        {isLoading ? (
-          <Placeholder
-            header="Caricamento vernici..."
-            description="Recupero catalogo vernici dal server"
-          >
-            <Spinner size="l" />
-          </Placeholder>
-        ) : isError ? (
-          <Placeholder
-            header="Errore di caricamento"
-            description={parseApiError(error).message}
-            action={
-              <Button size="s" mode="bezeled" onClick={handleRefresh}>
-                Riprova
-              </Button>
-            }
-          />
-        ) : filteredPaints.length === 0 ? (
-          <Placeholder
-            header="Nessuna vernice trovata"
-            description="Non ci sono vernici corrispondenti ai filtri selezionati."
-            action={
-              <Button size="s" mode="bezeled" onClick={openCreateModal}>
-                Crea Nuova Vernice
-              </Button>
-            }
-          >
-            <Palette className="h-10 w-10 text-zinc-600" />
-          </Placeholder>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                <tr>
-                  <th className="px-4 py-3.5">ID</th>
-                  <th className="px-4 py-3.5">Anteprima &amp; Colore</th>
-                  <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
-                  <th className="px-4 py-3.5">Stato</th>
-                  <th className="px-4 py-3.5 text-right">Azioni</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {filteredPaints.map((paint) => (
-                  <tr
-                    key={paint.id}
-                    className="hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3.5 font-mono text-xs text-zinc-500">
-                      #{paint.id}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {paint.color ? (
-                        <div className="inline-flex items-center gap-3">
-                          <span
-                            className="h-7 w-7 shrink-0 rounded-lg border border-white/20 shadow-inner"
-                            style={{ backgroundColor: paint.color }}
-                            title={`Anteprima colore: ${paint.color}`}
-                          />
-                          <span className="font-mono text-sm font-semibold text-zinc-100">
-                            {paint.color}
-                          </span>
-                        </div>
-                      ) : (
-                        <Caption level="1" className="italic !text-zinc-500">
-                          Nessun colore (default)
-                        </Caption>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <UnlockTypeBadge
-                        unlockType={paint.unlockType}
-                        unlockValue={paint.unlockValue}
-                      />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <StatusBadge isActive={paint.isActive} />
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-2">
-                        <Button
-                          type="button"
-                          size="s"
-                          mode="bezeled"
-                          onClick={() => openEditModal(paint)}
-                          before={<Pencil className="h-3.5 w-3.5" />}
-                        >
-                          Modifica
-                        </Button>
-                        <IconButton
-                          type="button"
-                          size="s"
-                          mode="gray"
-                          onClick={() => setDeletingPaint(paint)}
-                          title="Elimina vernice"
-                          className="hover:!text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </IconButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      {/* Create / Edit Modal with Telegram UI Form Controls */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <div>
-                <Title level="3" className="!text-lg !font-bold !text-zinc-100">
-                  {editingPaint
-                    ? `Modifica Vernice #${editingPaint.id}`
-                    : "Nuova Vernice"}
-                </Title>
-                <Caption level="1" className="!text-zinc-400">
-                  Seleziona o inserisci il codice colore e i parametri di
-                  sblocco
-                </Caption>
-              </div>
-              <IconButton
-                type="button"
-                size="s"
-                mode="gray"
-                onClick={() => setIsFormOpen(false)}
-                disabled={isSaving}
-              >
-                <X className="h-4 w-4" />
-              </IconButton>
-            </div>
-
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <Section
-                header="Colore e Livrea"
-                className="overflow-hidden rounded-xl border border-zinc-800/80"
-              >
-                <ColorInput
-                  header="Selettore Colore Visivo"
-                  value={colorPickerValue}
+        isFormOpen={isFormOpen}
+        formTitle={
+          editingPaint
+            ? `Modifica Vernice #${editingPaint.id}`
+            : "Nuova Vernice"
+        }
+        formSubtitle="Definisci il codice esadecimale e il costo di sblocco."
+        isSaving={isSaving}
+        onOpenCreate={openCreate}
+        onOpenEdit={openEdit}
+        onCloseForm={() => setIsFormOpen(false)}
+        onRequestDelete={setDeletingPaint}
+        onSubmitForm={handleSubmit}
+        submitButtonLabel={editingPaint ? "Salva Modifiche" : "Crea Vernice"}
+        renderFormFields={() => (
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-tg-muted">
+                Codice Colore HEX *
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={isHexColor(formData.color) ? (formData.color ?? "#e63946") : "#e63946"}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      color: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, color: e.target.value }))
                   }
+                  className="h-8 w-10 shrink-0 cursor-pointer rounded border border-tg-border bg-transparent p-0.5"
                 />
-
-                <Input
-                  header="Codice o Nome Colore (max 50 caratteri)"
-                  status={fieldErrors.color ? "error" : "default"}
-                  maxLength={50}
+                <input
+                  type="text"
+                  required
+                  maxLength={7}
                   value={formData.color ?? ""}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      color: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, color: e.target.value }))
                   }
-                  placeholder="es. #e63946, Crimson Red, Gold..."
+                  placeholder="#FF0055"
+                  className="h-8 flex-1 rounded-md border border-tg-border bg-tg-surface px-2.5 font-mono text-xs uppercase text-tg-primary focus:border-tg-accent focus:outline-none"
                 />
-
-                {/* Quick Preset Swatches */}
-                <div className="flex flex-wrap items-center gap-2 px-5 pb-4 pt-1">
-                  <Caption level="2" className="!text-zinc-400">
-                    Colori rapidi:
-                  </Caption>
-                  {PRESET_COLORS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({ ...prev, color: preset }))
-                      }
-                      className={`h-6 w-6 rounded-lg border transition-transform hover:scale-110 cursor-pointer ${
-                        formData.color?.toLowerCase() === preset.toLowerCase()
-                          ? "border-orange-400 ring-2 ring-orange-500/40 scale-110"
-                          : "border-white/20"
-                      }`}
-                      style={{ backgroundColor: preset }}
-                      title={preset}
-                    />
-                  ))}
-                </div>
-
-                {fieldErrors.color && (
-                  <div className="px-5 pb-3">
-                    <Caption level="1" className="!text-red-400">
-                      {fieldErrors.color.join(", ")}
-                    </Caption>
-                  </div>
-                )}
-              </Section>
-
-              <Section
-                header="Sblocco & Stato"
-                className="overflow-hidden rounded-xl border border-zinc-800/80"
-              >
-                <Select
-                  header="Metodo di Sblocco *"
-                  status={fieldErrors.unlockType ? "error" : "default"}
-                  value={formData.unlockType}
-                  onChange={(e) =>
-                    handleUnlockTypeChange(e.target.value as UnlockType)
-                  }
-                >
-                  {Object.values(UnlockType).map((type) => (
-                    <option key={type} value={type}>
-                      {UNLOCK_TYPE_META[type].label}
-                    </option>
-                  ))}
-                </Select>
-
-                <Input
-                  header="Valore / Costo Sblocco"
-                  type="number"
-                  min={0}
-                  step={1}
-                  status={fieldErrors.unlockValue ? "error" : "default"}
-                  disabled={formData.unlockType === UnlockType.FREE}
-                  value={
-                    formData.unlockType === UnlockType.FREE
-                      ? 0
-                      : formData.unlockValue
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      unlockValue: Number(e.target.value),
-                    }))
-                  }
-                />
-                {fieldErrors.unlockValue && (
-                  <div className="px-5 pb-2">
-                    <Caption level="1" className="!text-red-400">
-                      {fieldErrors.unlockValue.join(", ")}
-                    </Caption>
-                  </div>
-                )}
-
-                <Cell
-                  Component="label"
-                  subtitle="Rendi la vernice disponibile nel garage di gioco"
-                  after={
-                    <Switch
-                      checked={formData.isActive}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          isActive: e.target.checked,
-                        }))
-                      }
-                    />
-                  }
-                >
-                  Stato Visibilità (isActive)
-                </Cell>
-              </Section>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-                <Button
-                  type="button"
-                  size="m"
-                  mode="gray"
-                  onClick={() => setIsFormOpen(false)}
-                  disabled={isSaving}
-                >
-                  Annulla
-                </Button>
-                <Button
-                  type="submit"
-                  size="m"
-                  mode="filled"
-                  loading={isSaving}
-                  disabled={isSaving}
-                >
-                  {editingPaint ? "Salva Modifiche" : "Crea Vernice"}
-                </Button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              {fieldErrors.color && (
+                <p className="mt-1 text-[11px] text-tg-danger">
+                  {fieldErrors.color.join(", ")}
+                </p>
+              )}
+            </div>
 
-      {/* Delete Confirmation Modal */}
+            {/* Quick palette preset chips */}
+            <div>
+              <span className="mb-1.5 block text-[11px] font-medium text-tg-muted">
+                Preimpostazioni rapide
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESET_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, color: c }))
+                    }
+                    className="flex h-6 w-6 items-center justify-center rounded border border-tg-border transition-transform hover:scale-105 cursor-pointer"
+                    style={{ backgroundColor: c }}
+                    title={c}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <UnlockFieldsSection
+              unlockType={formData.unlockType}
+              unlockValue={formData.unlockValue}
+              isActive={formData.isActive}
+              onUnlockTypeChange={handleUnlockTypeChange}
+              onUnlockValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, unlockValue: val }))
+              }
+              onIsActiveChange={(checked) =>
+                setFormData((prev) => ({ ...prev, isActive: checked }))
+              }
+              activeSubtitle="Rendi la livrea disponibile nel garage"
+              fieldErrors={fieldErrors}
+            />
+          </div>
+        )}
+      />
+
       <ConfirmDeleteModal
         isOpen={Boolean(deletingPaint)}
-        title="Elimina Vernice dal Catalogo"
-        itemName={
-          deletingPaint
-            ? deletingPaint.color || `Vernice #${deletingPaint.id}`
-            : ""
-        }
-        isLoading={isDeleting}
+        title="Elimina Vernice"
+        itemName={deletingPaint?.color ?? ""}
+        isDeleting={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingPaint(null)}
       />
-    </div>
+    </>
   );
 }

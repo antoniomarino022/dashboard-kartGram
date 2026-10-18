@@ -3,329 +3,345 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Avatar,
-  Badge,
-  Button,
-  Caption,
-  Cell,
-  IconButton,
-  Placeholder,
-  Section,
-  Spinner,
-  Subheadline,
-  Title,
-} from "@telegram-apps/telegram-ui";
-import {
-  authClient,
-  useSession,
-  type SessionUserWithRole,
-} from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CarFront,
-  Disc,
-  Flag,
+  CircleDot,
+  LayoutDashboard,
   LogOut,
+  MapPin,
   Menu,
+  Moon,
   Palette,
-  ShieldCheck,
+  ShieldAlert,
+  Sun,
   Users,
   X,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  authClient,
+  useSession,
+  type SessionUserWithRole,
+} from "@/lib/auth-client";
+import {
+  useCarsQuery,
+  useCharactersQuery,
+  useMapsQuery,
+  usePaintsQuery,
+  usePowerupsQuery,
+  useWheelsQuery,
+} from "@/hooks/use-catalog-queries";
+import { TgAvatar } from "@/components/ui/tg-avatar";
+import { cn } from "@/lib/cn";
+import { useUiStore } from "@/stores/ui";
 
-const NAV_ITEMS = [
+const PUBLIC_PATHS = ["/login", "/register"];
+
+export const NAV_ITEMS = [
   {
+    href: "/",
+    label: "Panoramica",
+    icon: LayoutDashboard,
+  },
+  {
+    key: "cars",
     href: "/cars",
-    label: "Gestione Auto",
-    emoji: "🏎",
+    label: "Auto",
     icon: CarFront,
-    description: "Parco auto, velocità e vite",
   },
   {
+    key: "characters",
     href: "/characters",
-    label: "Gestione Personaggi",
-    emoji: "👤",
+    label: "Piloti",
     icon: Users,
-    description: "Piloti, sottotipi e perk",
   },
   {
+    key: "maps",
     href: "/maps",
-    label: "Gestione Mappe",
-    emoji: "🗺",
-    icon: Flag,
-    description: "Circuiti e ambientazioni",
+    label: "Mappe",
+    icon: MapPin,
   },
   {
+    key: "paints",
     href: "/paints",
-    label: "Gestione Vernici",
-    emoji: "🎨",
+    label: "Vernici",
     icon: Palette,
-    description: "Colori e livree carrozzeria",
   },
   {
+    key: "wheels",
     href: "/wheels",
-    label: "Gestione Ruote",
-    emoji: "🛞",
-    icon: Disc,
-    description: "Set di ruote e vite extra",
+    label: "Ruote",
+    icon: CircleDot,
   },
   {
+    key: "powerups",
     href: "/powerups",
-    label: "Gestione Powerup",
-    emoji: "⚡",
+    label: "Powerup",
     icon: Zap,
-    description: "Potenziamenti e abilità",
   },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session, isPending } = useSession();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const user = session?.user as SessionUserWithRole | undefined;
-  const isAdmin = Boolean(user && user.role === "admin");
-  const isPublicAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const theme = useUiStore((s) => s.theme);
+  const toggleTheme = useUiStore((s) => s.toggleTheme);
 
+  const carsQuery = useCarsQuery();
+  const charactersQuery = useCharactersQuery();
+  const mapsQuery = useMapsQuery();
+  const paintsQuery = usePaintsQuery();
+  const wheelsQuery = useWheelsQuery();
+  const powerupsQuery = usePowerupsQuery();
+
+  const isPublicPage = PUBLIC_PATHS.includes(pathname);
+
+  // Sync dark class
   useEffect(() => {
-    if (isPublicAuthRoute) return;
-    if (!isPending) {
-      if (!user) {
-        router.replace("/login");
-      } else if (user.role !== "admin") {
-        toast.error(
-          "Accesso negato: sono richiesti privilegi di amministratore."
-        );
-        router.replace("/login?reason=not_admin");
-      }
-    }
-  }, [isPublicAuthRoute, isPending, user, router]);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
-  if (isPublicAuthRoute) {
-    return <>{children}</>;
-  }
+  // Auth redirect
+  useEffect(() => {
+    if (!isPending && !session?.user && !isPublicPage && !isLoggingOut) {
+      router.replace("/login");
+    }
+  }, [isPending, session, isPublicPage, isLoggingOut, router]);
 
   const handleSignOut = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
-      setIsLoggingOut(true);
+      queryClient.clear();
       await authClient.signOut();
-      toast.success("Disconnessione effettuata con successo.");
-      router.replace("/login");
     } catch {
-      toast.error("Errore durante il logout.");
+      // Proceed even on network error
     } finally {
-      setIsLoggingOut(false);
+      toast.success("Sessione chiusa.");
+      window.location.replace("/login?logged_out=1");
     }
   };
 
-  if (isPending) {
+  if (isPublicPage) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 text-zinc-100">
-        <Placeholder
-          header="Verifica sessione amministratore..."
-          description="Autenticazione Better Auth in corso"
-        >
-          <Spinner size="l" />
-        </Placeholder>
-      </div>
+      <main className="min-h-screen bg-tg-chat text-tg-primary">{children}</main>
     );
   }
 
-  if (!user || !isAdmin) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 text-zinc-100">
-        <Placeholder
-          header="Reindirizzamento al login..."
-          description="Sessione non autorizzata o scaduta"
-        >
-          <Spinner size="l" />
-        </Placeholder>
-      </div>
-    );
-  }
+  const currentUser = session?.user as SessionUserWithRole | undefined;
 
-  const userAcronym = (
-    user.name?.slice(0, 2) ||
-    user.email?.slice(0, 2) ||
-    "AD"
-  ).toUpperCase();
+  const counts: Record<string, number> = {
+    cars: carsQuery.data?.length ?? 0,
+    characters: charactersQuery.data?.length ?? 0,
+    maps: mapsQuery.data?.length ?? 0,
+    paints: paintsQuery.data?.length ?? 0,
+    wheels: wheelsQuery.data?.length ?? 0,
+    powerups: powerupsQuery.data?.length ?? 0,
+  };
 
   return (
-    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Mobile Sidebar Backdrop */}
-      {sidebarOpen && (
+    <div className="flex h-[100dvh] w-screen overflow-hidden bg-tg-chat text-tg-primary">
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-xs lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs md:hidden"
         />
       )}
 
-      {/* Sidebar */}
+      {/* Clean Dashboard Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-80 flex-col border-r border-zinc-800/80 bg-zinc-900/95 backdrop-blur-xl transition-transform duration-200 lg:static lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-tg-border bg-tg-surface transition-transform duration-200 md:static md:translate-x-0",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between border-b border-zinc-800/80 px-5">
-          <Link href="/cars" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-lg font-bold text-zinc-950 shadow-md shadow-orange-500/20">
-              🏎
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-tg-border px-5">
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2.5 font-bold tracking-tight text-tg-primary"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-tg-accent text-white">
+              <CarFront className="h-4 w-4" />
             </div>
-            <div>
-              <Title level="3" className="!text-base !font-bold !text-zinc-100">
-                Kart-Gram
-              </Title>
-              <Caption
-                level="2"
-                className="!block !font-semibold uppercase tracking-wider !text-orange-400"
-              >
-                Telegram UI Admin
-              </Caption>
+            <div className="flex flex-col">
+              <span className="text-sm font-extrabold leading-none">KartGram</span>
+              <span className="text-[10px] font-medium text-tg-muted">
+                Admin Dashboard
+              </span>
             </div>
           </Link>
-          <IconButton
-            size="s"
-            mode="gray"
+
+          <button
             type="button"
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden"
-            aria-label="Chiudi menu"
+            onClick={() => setMobileMenuOpen(false)}
+            className="rounded-lg p-1 text-tg-muted hover:bg-tg-secondary md:hidden"
           >
-            <X className="h-4 w-4" />
-          </IconButton>
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Navigation Links via Telegram UI Section & Cell */}
-        <div className="flex-1 overflow-y-auto px-3 py-4">
-          <Section
-            header="Catalogo & Sistema"
-            className="overflow-hidden rounded-2xl border border-zinc-800/60"
-          >
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname.startsWith(item.href);
+        {/* Navigation items */}
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-tg-muted">
+            Menu
+          </div>
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const count = item.key ? counts[item.key] : null;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className="block no-underline"
-                >
-                  <Cell
-                    before={
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-950 text-base">
-                        {item.emoji}
-                      </span>
-                    }
-                    subtitle={item.description}
-                    after={
-                      <Icon
-                        className={cn(
-                          "h-4 w-4 shrink-0 transition-transform",
-                          isActive ? "text-orange-400" : "text-zinc-500"
-                        )}
-                      />
-                    }
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+                  isActive
+                    ? "bg-tg-accent text-white"
+                    : "text-tg-muted hover:bg-tg-secondary hover:text-tg-primary"
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{item.label}</span>
+                </div>
+                {count !== null && (
+                  <span
                     className={cn(
-                      "transition-colors",
+                      "rounded-full px-2 py-0.5 text-[10px] font-bold",
                       isActive
-                        ? "!bg-orange-500/15 border-l-2 border-l-orange-500"
-                        : "hover:!bg-zinc-800/50"
+                        ? "bg-white/20 text-white"
+                        : "bg-tg-secondary text-tg-muted"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "font-semibold text-sm",
-                        isActive ? "text-orange-400" : "text-zinc-100"
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  </Cell>
-                </Link>
-              );
-            })}
-          </Section>
+                    {count}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User profile & Theme toggle footer */}
+        <div className="border-t border-tg-border p-3">
+          <div className="mb-2 flex items-center justify-between rounded-lg bg-tg-secondary p-2.5">
+            <div className="flex items-center gap-2 overflow-hidden">
+              <TgAvatar
+                name={currentUser?.name || currentUser?.email || "Admin"}
+                seed={currentUser?.email || "admin"}
+                size="sm"
+              />
+              <div className="flex flex-col truncate">
+                <span className="truncate text-xs font-semibold text-tg-primary">
+                  {currentUser?.name || "Admin"}
+                </span>
+                <span className="truncate text-[10px] text-tg-muted">
+                  {currentUser?.email}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Tema chiaro" : "Tema scuro"}
+              className="rounded-md p-1.5 text-tg-muted hover:bg-tg-surface hover:text-tg-primary cursor-pointer"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-amber-400" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-tg-border bg-tg-surface py-1.5 text-xs font-semibold text-tg-muted transition-colors hover:bg-tg-danger-soft hover:text-tg-danger cursor-pointer"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Esci</span>
+          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col min-w-0">
-        {/* Top Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-zinc-800/80 bg-zinc-950/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <IconButton
-              size="s"
-              mode="bezeled"
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden"
-              aria-label="Apri menu"
-            >
-              <Menu className="h-5 w-5" />
-            </IconButton>
-            <div className="hidden sm:flex items-center gap-2">
-              <Subheadline level="2" className="!text-zinc-400">
-                Pannello di Controllo Amministratore
-              </Subheadline>
-              <Badge type="number" mode="secondary">
-                Telegram Mini App Catalog
-              </Badge>
-            </div>
-          </div>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Mobile top navbar */}
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-tg-border bg-tg-surface px-4 md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="rounded-lg p-1.5 text-tg-muted hover:bg-tg-secondary hover:text-tg-primary cursor-pointer"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
 
-          {/* Right User Profile + Admin Badge + Logout */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 rounded-xl border border-zinc-800/90 bg-zinc-900/70 px-3 py-1.5">
-              <Avatar size={28} acronym={userAcronym} />
-              <div className="hidden md:block text-left">
-                <div className="flex items-center gap-1.5">
-                  <Subheadline
-                    level="2"
-                    className="!text-xs !font-semibold !text-zinc-100"
-                  >
-                    {user.name || "Amministratore"}
-                  </Subheadline>
-                  <span className="inline-flex items-center gap-1 rounded-md border border-orange-500/30 bg-orange-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-400">
-                    <ShieldCheck className="h-3 w-3" />
-                    Admin
-                  </span>
-                </div>
-                <Caption level="2" className="!block !text-zinc-400">
-                  {user.email}
-                </Caption>
-              </div>
-            </div>
+          <span className="text-sm font-bold text-tg-primary">KartGram Admin</span>
 
-            <Button
-              type="button"
-              size="s"
-              mode="bezeled"
-              onClick={handleSignOut}
-              loading={isLoggingOut}
-              disabled={isLoggingOut}
-              before={<LogOut className="h-4 w-4" />}
-              title="Disconnetti sessione"
-            >
-              Logout
-            </Button>
-          </div>
-        </header>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="rounded-lg p-1.5 text-tg-muted hover:bg-tg-secondary hover:text-tg-primary cursor-pointer"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </button>
+        </div>
 
-        {/* Page Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Page Content */}
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {children}
         </main>
       </div>
+
+      {/* Non-admin alert overlay */}
+      {!isPending &&
+        !isLoggingOut &&
+        currentUser &&
+        currentUser.role !== "admin" && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-xl border border-tg-border bg-tg-surface p-6 text-center shadow-xl">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-tg-danger-soft text-tg-danger">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <h2 className="text-base font-bold text-tg-primary">
+                Accesso Riservato agli Amministratori
+              </h2>
+              <p className="mt-2 text-xs text-tg-muted">
+                Connesso come <strong>{currentUser.email}</strong>. Questo account
+                non dispone dei permessi di amministratore.
+              </p>
+              <div className="mt-5 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded-lg bg-tg-danger px-4 py-2 text-xs font-semibold text-white hover:opacity-90 cursor-pointer"
+                >
+                  Disconnetti
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

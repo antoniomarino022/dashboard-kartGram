@@ -1,24 +1,35 @@
 "use client";
 
-import { Badge, Caption, Chip } from "@telegram-apps/telegram-ui";
 import { UnlockType } from "@/types/api";
-import { cn, UNLOCK_TYPE_META } from "@/lib/utils";
-import { Coins, Gift, Megaphone, Share2, Sparkles } from "lucide-react";
+import { UNLOCK_TYPE_META } from "@/lib/utils";
+import { DoubleCheckIcon, SingleCheckIcon } from "@/components/ui/telegram-icons";
 
 export function StatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <Chip
-      mode="elevated"
-      before={<Badge type="dot" mode={isActive ? "primary" : "gray"} />}
-      className={cn(
-        "!rounded-full !py-1 !px-2.5 text-xs font-medium border",
-        isActive
-          ? "!border-emerald-500/30 !bg-emerald-500/10 !text-emerald-400"
-          : "!border-zinc-700 !bg-zinc-800/80 !text-zinc-400"
-      )}
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide"
+      style={{
+        backgroundColor: isActive
+          ? "var(--tg-success-soft)"
+          : "var(--tg-bg-hover)",
+        color: isActive ? "var(--tg-success)" : "var(--tg-text-secondary)",
+      }}
     >
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{
+          backgroundColor: isActive
+            ? "var(--tg-success)"
+            : "var(--tg-text-secondary)",
+        }}
+      />
+      {isActive ? (
+        <DoubleCheckIcon className="h-3.5 w-3.5 shrink-0" />
+      ) : (
+        <SingleCheckIcon className="h-3 w-3 shrink-0" />
+      )}
       {isActive ? "Attivo" : "Inattivo"}
-    </Chip>
+    </span>
   );
 }
 
@@ -27,44 +38,31 @@ export function UnlockTypeBadge({
   unlockValue,
 }: {
   unlockType: UnlockType;
-  unlockValue?: number;
+  unlockValue: number;
 }) {
-  const meta = UNLOCK_TYPE_META[unlockType] ?? {
-    label: unlockType,
-    badgeClass: "bg-zinc-800 text-zinc-300 border-zinc-700",
-    unitLabel: "",
-  };
-
-  const Icon =
-    unlockType === UnlockType.FREE
-      ? Gift
-      : unlockType === UnlockType.COINS
-      ? Coins
-      : unlockType === UnlockType.STARS
-      ? Sparkles
-      : unlockType === UnlockType.SHARES
-      ? Share2
-      : Megaphone;
+  const meta = UNLOCK_TYPE_META[unlockType] ?? UNLOCK_TYPE_META[UnlockType.FREE];
 
   return (
-    <div className="inline-flex items-center gap-2">
-      <Chip
-        mode="outline"
-        before={<Icon className="h-3.5 w-3.5" />}
-        className={cn(
-          "!rounded-lg !py-1 !px-2.5 text-xs font-semibold tracking-wide border",
-          meta.badgeClass
-        )}
+    <span className="inline-flex items-center gap-1.5 text-[13px] leading-none">
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide"
+        style={{
+          backgroundColor: meta.softBgVar,
+          color: meta.accentVar,
+        }}
       >
-        {unlockType}
-      </Chip>
-      {typeof unlockValue === "number" && (
-        <Caption level="1" className="font-mono !text-zinc-400">
-          {unlockType === UnlockType.FREE
-            ? "0 (Gratis)"
-            : `${unlockValue.toLocaleString("it-IT")} ${meta.unitLabel}`}
-        </Caption>
+        <span>{meta.shortLabel}</span>
+      </span>
+      {unlockType === UnlockType.FREE ? (
+        <span className="text-[12px] font-medium text-tg-success">Gratis</span>
+      ) : (
+        <span className="font-mono text-[13px] font-semibold text-tg-primary">
+          {unlockValue.toLocaleString("it-IT")}{" "}
+          <span className="font-sans text-[11px] font-normal text-tg-muted">
+            {meta.unitLabel}
+          </span>
+        </span>
       )}
-    </div>
+    </span>
   );
 }

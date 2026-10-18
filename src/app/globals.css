@@ -1,41 +1,202 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
+  /* Clean, crisp Light Theme Tokens */
+  --tg-bg-surface: #ffffff;
+  --tg-bg-secondary: #f8fafc;
+  --tg-bg-chat: #f1f5f9;
+  --tg-bg-chat-pattern: rgba(148, 163, 184, 0.08);
+  --tg-bg-bubble-in: #ffffff;
+  --tg-bg-bubble-out: #eff6ff;
+  --tg-bg-hover: #f1f5f9;
+  --tg-bg-active: #0284c7;
+  --tg-bg-selected: rgba(2, 132, 199, 0.08);
+  --tg-bg-pill: rgba(15, 23, 42, 0.65);
+  --tg-accent: #0284c7;
+  --tg-accent-hover: #0369a1;
+  --tg-accent-soft: rgba(2, 132, 199, 0.1);
+  --tg-text-primary: #0f172a;
+  --tg-text-secondary: #64748b;
+  --tg-text-meta-out: #0284c7;
+  --tg-text-on-accent: #ffffff;
+  --tg-border: #e2e8f0;
+  --tg-badge-unread: #0284c7;
+  --tg-badge-muted: #94a3b8;
+  --tg-danger: #ef4444;
+  --tg-danger-soft: rgba(239, 68, 68, 0.1);
+  --tg-success: #10b981;
+  --tg-success-soft: rgba(16, 185, 129, 0.1);
+  --tg-warning: #f59e0b;
+  --tg-warning-soft: rgba(245, 158, 11, 0.1);
+  --tg-purple: #8b5cf6;
+  --tg-purple-soft: rgba(139, 92, 246, 0.1);
+  --tg-cyan: #06b6d4;
+  --tg-cyan-soft: rgba(6, 182, 212, 0.1);
+  --tg-pink: #ec4899;
+  --tg-pink-soft: rgba(236, 72, 153, 0.1);
 
-  /* Telegram UI dark theme customization for Kart-Gram Admin */
-  --tg-theme-bg-color: #18181b;
-  --tg-theme-secondary-bg-color: #09090b;
-  --tg-theme-header-bg-color: #18181b;
-  --tg-theme-section-bg-color: #18181b;
-  --tg-theme-section-header-text-color: #a1a1aa;
-  --tg-theme-text-color: #f4f4f5;
-  --tg-theme-hint-color: #a1a1aa;
-  --tg-theme-subtitle-text-color: #a1a1aa;
-  --tg-theme-link-color: #fb923c;
-  --tg-theme-button-color: #f97316;
-  --tg-theme-button-text-color: #09090b;
-  --tg-theme-accent-text-color: #fb923c;
-  --tg-theme-destructive-text-color: #f87171;
+  /* Deterministic Avatar Palette */
+  --tg-avatar-red: #ef4444;
+  --tg-avatar-orange: #f97316;
+  --tg-avatar-violet: #8b5cf6;
+  --tg-avatar-green: #10b981;
+  --tg-avatar-cyan: #06b6d4;
+  --tg-avatar-blue: #0284c7;
+  --tg-avatar-pink: #ec4899;
+
+  /* Gradients & Shadows */
+  --tg-gradient-primary: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --tg-gradient-active-chat: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --tg-gradient-bubble-out: #eff6ff;
+  --tg-shadow-bubble: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --tg-shadow-elevated: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+}
+
+.dark {
+  /* Clean, focused Dark Theme Tokens */
+  --tg-bg-surface: #0f172a;
+  --tg-bg-secondary: #1e293b;
+  --tg-bg-chat: #090d16;
+  --tg-bg-chat-pattern: rgba(148, 163, 184, 0.05);
+  --tg-bg-bubble-in: #1e293b;
+  --tg-bg-bubble-out: #172554;
+  --tg-bg-hover: #1e293b;
+  --tg-bg-active: #38bdf8;
+  --tg-bg-selected: rgba(56, 189, 248, 0.12);
+  --tg-bg-pill: rgba(15, 23, 42, 0.85);
+  --tg-accent: #38bdf8;
+  --tg-accent-hover: #0284c7;
+  --tg-accent-soft: rgba(56, 189, 248, 0.12);
+  --tg-text-primary: #f8fafc;
+  --tg-text-secondary: #94a3b8;
+  --tg-text-meta-out: #38bdf8;
+  --tg-text-on-accent: #0f172a;
+  --tg-border: #334155;
+  --tg-badge-unread: #38bdf8;
+  --tg-badge-muted: #475569;
+  --tg-danger: #f87171;
+  --tg-danger-soft: rgba(248, 113, 113, 0.12);
+  --tg-success: #34d399;
+  --tg-success-soft: rgba(52, 211, 153, 0.12);
+  --tg-warning: #fbbf24;
+  --tg-warning-soft: rgba(251, 191, 36, 0.12);
+  --tg-purple: #c084fc;
+  --tg-purple-soft: rgba(192, 132, 252, 0.12);
+  --tg-cyan: #22d3ee;
+  --tg-cyan-soft: rgba(34, 211, 238, 0.12);
+  --tg-pink: #f472b6;
+  --tg-pink-soft: rgba(244, 114, 182, 0.12);
+
+  /* Gradients & Shadows */
+  --tg-gradient-primary: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --tg-gradient-active-chat: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --tg-gradient-bubble-out: #172554;
+  --tg-shadow-bubble: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --tg-shadow-elevated: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-tg-surface: var(--tg-bg-surface);
+  --color-tg-secondary: var(--tg-bg-secondary);
+  --color-tg-chat: var(--tg-bg-chat);
+  --color-tg-bubble-in: var(--tg-bg-bubble-in);
+  --color-tg-bubble-out: var(--tg-bg-bubble-out);
+  --color-tg-hover: var(--tg-bg-hover);
+  --color-tg-active: var(--tg-bg-active);
+  --color-tg-selected: var(--tg-bg-selected);
+  --color-tg-pill: var(--tg-bg-pill);
+  --color-tg-accent: var(--tg-accent);
+  --color-tg-accent-hover: var(--tg-accent-hover);
+  --color-tg-accent-soft: var(--tg-accent-soft);
+  --color-tg-primary: var(--tg-text-primary);
+  --color-tg-muted: var(--tg-text-secondary);
+  --color-tg-meta-out: var(--tg-text-meta-out);
+  --color-tg-on-accent: var(--tg-text-on-accent);
+  --color-tg-border: var(--tg-border);
+  --color-tg-unread: var(--tg-badge-unread);
+  --color-tg-badge-muted: var(--tg-badge-muted);
+  --color-tg-danger: var(--tg-danger);
+  --color-tg-danger-soft: var(--tg-danger-soft);
+  --color-tg-success: var(--tg-success);
+  --color-tg-warning: var(--tg-warning);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--tg-bg-chat);
+  color: var(--tg-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Smooth integration between Telegram UI inputs/selects and dark admin cards */
-select option {
-  background-color: #18181b;
-  color: #f4f4f5;
+/* Subtle clean background without colorful mesh slop */
+.tg-chat-wallpaper {
+  background-color: var(--tg-bg-chat);
 }
 
+.tg-bubble-out-gradient {
+  background-color: var(--tg-bg-bubble-out);
+  box-shadow: var(--tg-shadow-bubble);
+}
+
+.tg-bubble-in-card {
+  background-color: var(--tg-bg-bubble-in);
+  box-shadow: var(--tg-shadow-bubble);
+}
+
+.tg-active-chat-gradient {
+  background-color: var(--tg-accent);
+}
+
+.tg-btn-gradient {
+  background-color: var(--tg-accent);
+  color: #ffffff;
+}
+
+.tg-btn-gradient:hover {
+  background-color: var(--tg-accent-hover);
+}
+
+/* Hide scrollbar for horizontal pill bars while keeping scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom thin Telegram-style scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-badge-muted);
+  border-radius: 9999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

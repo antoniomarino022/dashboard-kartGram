@@ -1,22 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Badge,
-  Button,
-  Caption,
-  Cell,
-  Chip,
-  IconButton,
-  Input,
-  Placeholder,
-  Section,
-  Select,
-  Spinner,
-  Subheadline,
-  Switch,
-  Title,
-} from "@telegram-apps/telegram-ui";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { parseApiError } from "@/services/apiClient";
 import {
   useCharactersQuery,
@@ -30,12 +15,13 @@ import {
   type Character,
   type CreateCharacterInput,
 } from "@/types/api";
-import { UNLOCK_TYPE_META } from "@/lib/utils";
-import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
-import { CatalogToolbar } from "@/components/ui/catalog-toolbar";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import { Pencil, Sparkles, Trash2, Users, X } from "lucide-react";
-import { toast } from "sonner";
+import { UnlockFieldsSection } from "@/components/ui/unlock-fields-section";
+import {
+  DataTableManager,
+  type DataTableColumn,
+} from "@/components/ui/data-table-manager";
+import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
 
 const INITIAL_CHARACTER_FORM: CreateCharacterInput = {
   name: "",
@@ -70,7 +56,6 @@ export function CharactersManager() {
     filteredItems: filteredCharacters,
   } = useCatalogFilters(characters);
 
-  // Create / Edit Modal
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(
     null
@@ -79,8 +64,6 @@ export function CharactersManager() {
     INITIAL_CHARACTER_FORM
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-
-  // Delete Confirmation Modal
   const [deletingCharacter, setDeletingCharacter] = useState<Character | null>(
     null
   );
@@ -94,18 +77,18 @@ export function CharactersManager() {
     if (result.isError) {
       toast.error(parseApiError(result.error).message);
     } else {
-      toast.success("Elenco personaggi aggiornato.");
+      toast.success("Elenco piloti aggiornato.");
     }
   };
 
-  const openCreateModal = () => {
+  const openCreate = () => {
     setEditingCharacter(null);
     setFormData(INITIAL_CHARACTER_FORM);
     setFieldErrors({});
     setIsFormOpen(true);
   };
 
-  const openEditModal = (character: Character) => {
+  const openEdit = (character: Character) => {
     setEditingCharacter(character);
     setFormData({
       name: character.name,
@@ -133,13 +116,17 @@ export function CharactersManager() {
     const trimmedName = formData.name.trim();
 
     if (!trimmedName) {
-      errs.name = ["Il nome del personaggio è obbligatorio."];
+      errs.name = ["Il nome del pilota è obbligatorio."];
     } else if (trimmedName.length > 100) {
       errs.name = ["Il nome non può superare i 100 caratteri."];
     }
 
     if (formData.subtype && formData.subtype.trim().length > 50) {
-      errs.subtype = ["Il sottotipo non può superare i 50 caratteri."];
+      errs.subtype = ["La classe pilota non può superare i 50 caratteri."];
+    }
+
+    if (formData.bonusStat && formData.bonusStat.trim().length > 100) {
+      errs.bonusStat = ["Il bonus statistica non può superare i 100 caratteri."];
     }
 
     if (
@@ -161,7 +148,6 @@ export function CharactersManager() {
     if (!validateClientForm()) return;
 
     setFieldErrors({});
-
     const payload: CreateCharacterInput = {
       name: formData.name.trim(),
       subtype: formData.subtype?.trim() ? formData.subtype.trim() : null,
@@ -180,16 +166,14 @@ export function CharactersManager() {
           id: editingCharacter.id,
           payload,
         });
-        toast.success(`Personaggio "${updated.name}" aggiornato con successo!`);
+        toast.success(`Pilota "${updated.name}" aggiornato.`);
       } else {
         const created = await createCharacterMutation.mutateAsync(payload);
-        toast.success(
-          `Nuovo personaggio "${created.name}" creato con successo!`
-        );
+        toast.success(`Pilota "${created.name}" creato.`);
       }
       setIsFormOpen(false);
-    } catch (error) {
-      const parsed = parseApiError(error);
+    } catch (err) {
+      const parsed = parseApiError(err);
       if (parsed.fieldErrors) {
         setFieldErrors(parsed.fieldErrors);
       }
@@ -201,356 +185,175 @@ export function CharactersManager() {
     if (!deletingCharacter) return;
     try {
       await deleteCharacterMutation.mutateAsync(deletingCharacter.id);
-      toast.success(
-        `Personaggio "${deletingCharacter.name}" eliminato con successo.`
-      );
+      toast.success(`Pilota "${deletingCharacter.name}" eliminato.`);
       setDeletingCharacter(null);
-    } catch (error) {
-      const parsed = parseApiError(error);
-      toast.error(parsed.message);
+    } catch (err) {
+      toast.error(parseApiError(err).message);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Title level="1" className="!text-2xl !font-bold !text-zinc-100">
-              👤 Gestione Personaggi
-            </Title>
-            <Badge type="number" mode="secondary">
-              {characters.length}
-            </Badge>
+  const columns: DataTableColumn<Character>[] = useMemo(
+    () => [
+      {
+        key: "name",
+        header: "Nome Pilota",
+        render: (char) => (
+          <div className="flex flex-col">
+            <span className="font-semibold text-tg-primary">{char.name}</span>
+            <span className="text-[11px] text-tg-muted">
+              {char.subtype || "standard"}
+            </span>
           </div>
-          <Subheadline level="2" className="mt-1 !text-zinc-400">
-            Configura i piloti disponibili, i loro sottotipi, abilità bonus e
-            requisiti di sblocco
-          </Subheadline>
-        </div>
-      </div>
+        ),
+      },
+      {
+        key: "bonusStat",
+        header: "Perk / Abilità",
+        render: (char) => (
+          <span className="text-xs text-tg-muted">
+            {char.bonusStat || "Nessun bonus"}
+          </span>
+        ),
+      },
+      {
+        key: "unlock",
+        header: "Sblocco & Costo",
+        render: (char) => (
+          <UnlockTypeBadge
+            unlockType={char.unlockType}
+            unlockValue={char.unlockValue}
+          />
+        ),
+      },
+      {
+        key: "status",
+        header: "Stato",
+        align: "center",
+        render: (char) => <StatusBadge isActive={char.isActive} />,
+      },
+    ],
+    []
+  );
 
-      {/* Toolbar */}
-      <CatalogToolbar
+  return (
+    <>
+      <DataTableManager<Character>
+        title="Piloti & Personaggi"
+        description="Configurazione piloti, perk bonus e statistiche di gara"
+        items={filteredCharacters}
+        columns={columns}
+        getId={(char) => char.id}
+        getIsActive={(char) => char.isActive}
+        totalCount={characters.length}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        isError={isError}
+        errorMessage={isError ? parseApiError(error).message : undefined}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        searchPlaceholder="Cerca pilota per nome o classe..."
         unlockFilter={unlockFilter}
         onUnlockFilterChange={setUnlockFilter}
         onlyActive={onlyActive}
         onOnlyActiveChange={setOnlyActive}
         onRefresh={handleRefresh}
-        isRefreshing={isFetching}
-        onCreateNew={openCreateModal}
-        createButtonLabel="Nuovo Personaggio"
-        totalCount={characters.length}
-        filteredCount={filteredCharacters.length}
-      />
-
-      {/* Table inside Telegram UI Section */}
-      <Section
-        header="Elenco Piloti & Personaggi"
-        className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50"
-      >
-        {isLoading ? (
-          <Placeholder
-            header="Caricamento personaggi..."
-            description="Recupero dati dal server in corso"
-          >
-            <Spinner size="l" />
-          </Placeholder>
-        ) : isError ? (
-          <Placeholder
-            header="Errore di caricamento"
-            description={parseApiError(error).message}
-            action={
-              <Button size="s" mode="bezeled" onClick={handleRefresh}>
-                Riprova
-              </Button>
-            }
-          />
-        ) : filteredCharacters.length === 0 ? (
-          <Placeholder
-            header="Nessun personaggio trovato"
-            description="Non ci sono piloti corrispondenti ai filtri selezionati."
-            action={
-              <Button size="s" mode="bezeled" onClick={openCreateModal}>
-                Crea Nuovo Personaggio
-              </Button>
-            }
-          >
-            <Users className="h-10 w-10 text-zinc-600" />
-          </Placeholder>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                <tr>
-                  <th className="px-4 py-3.5">ID</th>
-                  <th className="px-4 py-3.5">Nome Pilota</th>
-                  <th className="px-4 py-3.5">Sottotipo</th>
-                  <th className="px-4 py-3.5">Bonus / Perk</th>
-                  <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
-                  <th className="px-4 py-3.5">Stato</th>
-                  <th className="px-4 py-3.5 text-right">Azioni</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {filteredCharacters.map((character) => (
-                  <tr
-                    key={character.id}
-                    className="hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3.5 font-mono text-xs text-zinc-500">
-                      #{character.id}
-                    </td>
-                    <td className="px-4 py-3.5 font-semibold text-zinc-100">
-                      {character.name}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {character.subtype ? (
-                        <Chip
-                          mode="mono"
-                          className="!rounded-md !py-0.5 !px-2 text-xs font-medium"
-                        >
-                          {character.subtype}
-                        </Chip>
-                      ) : (
-                        <span className="text-xs text-zinc-500">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      {character.bonusStat ? (
-                        <Chip
-                          mode="outline"
-                          before={
-                            <Sparkles className="h-3 w-3 text-indigo-400" />
-                          }
-                          className="!rounded-lg !py-0.5 !px-2.5 !border-indigo-500/30 !bg-indigo-500/10 !text-indigo-300 text-xs font-medium"
-                        >
-                          {character.bonusStat}
-                        </Chip>
-                      ) : (
-                        <span className="text-xs text-zinc-500">
-                          Nessun bonus
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <UnlockTypeBadge
-                        unlockType={character.unlockType}
-                        unlockValue={character.unlockValue}
-                      />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <StatusBadge isActive={character.isActive} />
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-2">
-                        <Button
-                          type="button"
-                          size="s"
-                          mode="bezeled"
-                          onClick={() => openEditModal(character)}
-                          before={<Pencil className="h-3.5 w-3.5" />}
-                        >
-                          Modifica
-                        </Button>
-                        <IconButton
-                          type="button"
-                          size="s"
-                          mode="gray"
-                          onClick={() => setDeletingCharacter(character)}
-                          title="Elimina personaggio"
-                          className="hover:!text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </IconButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      {/* Create / Edit Modal with Telegram UI Form Controls */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <div>
-                <Title level="3" className="!text-lg !font-bold !text-zinc-100">
-                  {editingCharacter
-                    ? `Modifica Personaggio #${editingCharacter.id}`
-                    : "Nuovo Personaggio"}
-                </Title>
-                <Caption level="1" className="!text-zinc-400">
-                  Definisci nome, sottotipo, perk bonus e requisiti di sblocco
-                </Caption>
-              </div>
-              <IconButton
-                type="button"
-                size="s"
-                mode="gray"
-                onClick={() => setIsFormOpen(false)}
-                disabled={isSaving}
-              >
-                <X className="h-4 w-4" />
-              </IconButton>
+        createButtonLabel="Nuovo Pilota"
+        isFormOpen={isFormOpen}
+        formTitle={
+          editingCharacter
+            ? `Modifica Pilota #${editingCharacter.id}`
+            : "Nuovo Pilota"
+        }
+        formSubtitle="Compila le caratteristiche e condizioni di sblocco."
+        isSaving={isSaving}
+        onOpenCreate={openCreate}
+        onOpenEdit={openEdit}
+        onCloseForm={() => setIsFormOpen(false)}
+        onRequestDelete={setDeletingCharacter}
+        onSubmitForm={handleSubmit}
+        submitButtonLabel={editingCharacter ? "Salva Modifiche" : "Crea Pilota"}
+        renderFormFields={() => (
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-tg-muted">
+                Nome Pilota *
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={100}
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="es. Mario Racer, Speed Fox..."
+                className="h-8 w-full rounded-md border border-tg-border bg-tg-surface px-2.5 text-xs text-tg-primary focus:border-tg-accent focus:outline-none"
+              />
+              {fieldErrors.name && (
+                <p className="mt-1 text-[11px] text-tg-danger">
+                  {fieldErrors.name.join(", ")}
+                </p>
+              )}
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <Section
-                header="Profilo Pilota"
-                className="overflow-hidden rounded-xl border border-zinc-800/80"
-              >
-                <Input
-                  header="Nome Personaggio *"
-                  required
-                  maxLength={100}
-                  status={fieldErrors.name ? "error" : "default"}
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="es. Max Turbo, Cyber Luna..."
-                />
-                {fieldErrors.name && (
-                  <div className="px-5 pb-2">
-                    <Caption level="1" className="!text-red-400">
-                      {fieldErrors.name.join(", ")}
-                    </Caption>
-                  </div>
-                )}
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-tg-muted">
+                Classe / Sottotipo (opzionale)
+              </label>
+              <input
+                type="text"
+                maxLength={50}
+                value={formData.subtype ?? ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, subtype: e.target.value }))
+                }
+                placeholder="es. veterano, rookie, pro"
+                className="h-8 w-full rounded-md border border-tg-border bg-tg-surface px-2.5 text-xs text-tg-primary focus:border-tg-accent focus:outline-none"
+              />
+            </div>
 
-                <Input
-                  header="Sottotipo (subtype - opzionale)"
-                  maxLength={50}
-                  status={fieldErrors.subtype ? "error" : "default"}
-                  value={formData.subtype ?? ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      subtype: e.target.value,
-                    }))
-                  }
-                  placeholder="es. balanced, drift, heavyweight..."
-                />
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-tg-muted">
+                Bonus Statistica (bonusStat - opzionale)
+              </label>
+              <input
+                type="text"
+                maxLength={100}
+                value={formData.bonusStat ?? ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, bonusStat: e.target.value }))
+                }
+                placeholder="es. +5% turbo, +10% monete..."
+                className="h-8 w-full rounded-md border border-tg-border bg-tg-surface px-2.5 text-xs text-tg-primary focus:border-tg-accent focus:outline-none"
+              />
+            </div>
 
-                <Input
-                  header="Statistica Bonus / Perk (bonusStat - opzionale)"
-                  status={fieldErrors.bonusStat ? "error" : "default"}
-                  value={formData.bonusStat ?? ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      bonusStat: e.target.value,
-                    }))
-                  }
-                  placeholder="es. +10% coins, shield_on_start..."
-                />
-              </Section>
-
-              <Section
-                header="Sblocco & Stato"
-                className="overflow-hidden rounded-xl border border-zinc-800/80"
-              >
-                <Select
-                  header="Metodo di Sblocco *"
-                  status={fieldErrors.unlockType ? "error" : "default"}
-                  value={formData.unlockType}
-                  onChange={(e) =>
-                    handleUnlockTypeChange(e.target.value as UnlockType)
-                  }
-                >
-                  {Object.values(UnlockType).map((type) => (
-                    <option key={type} value={type}>
-                      {UNLOCK_TYPE_META[type].label}
-                    </option>
-                  ))}
-                </Select>
-
-                <Input
-                  header="Valore / Costo Sblocco"
-                  type="number"
-                  min={0}
-                  step={1}
-                  status={fieldErrors.unlockValue ? "error" : "default"}
-                  disabled={formData.unlockType === UnlockType.FREE}
-                  value={
-                    formData.unlockType === UnlockType.FREE
-                      ? 0
-                      : formData.unlockValue
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      unlockValue: Number(e.target.value),
-                    }))
-                  }
-                />
-
-                <Cell
-                  Component="label"
-                  subtitle="Rendi il personaggio selezionabile in gioco"
-                  after={
-                    <Switch
-                      checked={formData.isActive}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          isActive: e.target.checked,
-                        }))
-                      }
-                    />
-                  }
-                >
-                  Stato Visibilità (isActive)
-                </Cell>
-              </Section>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-                <Button
-                  type="button"
-                  size="m"
-                  mode="gray"
-                  onClick={() => setIsFormOpen(false)}
-                  disabled={isSaving}
-                >
-                  Annulla
-                </Button>
-                <Button
-                  type="submit"
-                  size="m"
-                  mode="filled"
-                  loading={isSaving}
-                  disabled={isSaving}
-                >
-                  {editingCharacter ? "Salva Modifiche" : "Crea Personaggio"}
-                </Button>
-              </div>
-            </form>
+            <UnlockFieldsSection
+              unlockType={formData.unlockType}
+              unlockValue={formData.unlockValue}
+              isActive={formData.isActive}
+              onUnlockTypeChange={handleUnlockTypeChange}
+              onUnlockValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, unlockValue: val }))
+              }
+              onIsActiveChange={(checked) =>
+                setFormData((prev) => ({ ...prev, isActive: checked }))
+              }
+              activeSubtitle="Rendi il pilota selezionabile in gara"
+              fieldErrors={fieldErrors}
+            />
           </div>
-        </div>
-      )}
+        )}
+      />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmDeleteModal
         isOpen={Boolean(deletingCharacter)}
-        title="Elimina Personaggio dal Catalogo"
-        itemName={deletingCharacter?.name || ""}
-        isLoading={isDeleting}
+        title="Elimina Pilota"
+        itemName={deletingCharacter?.name ?? ""}
+        isDeleting={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingCharacter(null)}
       />
-    </div>
+    </>
   );
 }

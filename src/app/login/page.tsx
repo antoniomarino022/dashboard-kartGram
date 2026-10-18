@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/login-form";
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Login Admin | Kart-Gram Dashboard",
   description: "Accesso riservato agli amministratori di Kart-Gram.",

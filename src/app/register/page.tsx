@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/register-form";
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Registrazione Admin | Kart-Gram Dashboard",
   description: "Registrazione nuovo account amministratore per Kart-Gram.",

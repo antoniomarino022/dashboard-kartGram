@@ -1,25 +1,16 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { QueryProvider } from "@/providers/query-provider";
-import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+export const instant = false;
 
 export const metadata: Metadata = {
-  title: "Kart-Gram | Admin Dashboard",
+  title: "Kart-Gram | Telegram Web Admin",
   description:
-    "Dashboard Amministrativa per la gestione del catalogo di gioco di Kart-Gram (Auto, Personaggi, Mappe).",
+    "Dashboard Amministrativa per la gestione del catalogo di gioco di Kart-Gram (Auto, Personaggi, Mappe, Vernici, Ruote, Powerup).",
 };
 
 export default function RootLayout({
@@ -28,15 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="it"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
+    <html lang="it" suppressHydrationWarning className="dark h-full antialiased">
+      <body className="h-full overflow-hidden bg-tg-chat text-tg-primary">
         <QueryProvider>
-          <DashboardShell>{children}</DashboardShell>
+          <Suspense fallback={<div className="h-screen w-screen bg-tg-chat" />}>
+            <DashboardShell>{children}</DashboardShell>
+          </Suspense>
         </QueryProvider>
-        <Toaster richColors position="top-right" theme="dark" closeButton />
+        <Toaster position="bottom-left" closeButton />
       </body>
     </html>
   );

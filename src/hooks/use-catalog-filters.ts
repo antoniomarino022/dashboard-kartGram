@@ -12,7 +12,7 @@ export interface FilterableCatalogItem {
 
 export function useCatalogFilters<T extends FilterableCatalogItem>(items: T[]) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [unlockFilter, setUnlockFilter] = useState("ALL");
+  const [unlockFilter, setUnlockFilter] = useState<"ALL" | UnlockType>("ALL");
   const [onlyActive, setOnlyActive] = useState(false);
 
   const filteredItems = useMemo(() => {

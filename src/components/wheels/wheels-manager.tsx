@@ -1,22 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Badge,
-  Button,
-  Caption,
-  Cell,
-  Chip,
-  IconButton,
-  Input,
-  Placeholder,
-  Section,
-  Select,
-  Spinner,
-  Subheadline,
-  Switch,
-  Title,
-} from "@telegram-apps/telegram-ui";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { parseApiError } from "@/services/apiClient";
 import {
   useCreateWheelMutation,
@@ -26,12 +11,13 @@ import {
 } from "@/hooks/use-catalog-queries";
 import { useCatalogFilters } from "@/hooks/use-catalog-filters";
 import { UnlockType, type CreateWheelInput, type Wheel } from "@/types/api";
-import { UNLOCK_TYPE_META } from "@/lib/utils";
-import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
-import { CatalogToolbar } from "@/components/ui/catalog-toolbar";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import { Disc, Heart, Pencil, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { UnlockFieldsSection } from "@/components/ui/unlock-fields-section";
+import {
+  DataTableManager,
+  type DataTableColumn,
+} from "@/components/ui/data-table-manager";
+import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
 
 const INITIAL_WHEEL_FORM: CreateWheelInput = {
   name: "",
@@ -65,14 +51,11 @@ export function WheelsManager() {
     filteredItems: filteredWheels,
   } = useCatalogFilters(wheels);
 
-  // Create / Edit Modal
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWheel, setEditingWheel] = useState<Wheel | null>(null);
   const [formData, setFormData] =
     useState<CreateWheelInput>(INITIAL_WHEEL_FORM);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-
-  // Delete Confirmation Modal
   const [deletingWheel, setDeletingWheel] = useState<Wheel | null>(null);
 
   const isSaving =
@@ -88,20 +71,21 @@ export function WheelsManager() {
     }
   };
 
-  const openCreateModal = () => {
+  const openCreate = () => {
     setEditingWheel(null);
     setFormData(INITIAL_WHEEL_FORM);
     setFieldErrors({});
     setIsFormOpen(true);
   };
 
-  const openEditModal = (wheel: Wheel) => {
+  const openEdit = (wheel: Wheel) => {
     setEditingWheel(wheel);
     setFormData({
       name: wheel.name,
       capacity: wheel.capacity,
       unlockType: wheel.unlockType,
-      unlockValue: wheel.unlockType === UnlockType.FREE ? 0 : wheel.unlockValue,
+      unlockValue:
+        wheel.unlockType === UnlockType.FREE ? 0 : wheel.unlockValue,
       isActive: wheel.isActive,
     });
     setFieldErrors({});
@@ -128,10 +112,10 @@ export function WheelsManager() {
 
     if (
       !Number.isInteger(Number(formData.capacity)) ||
-      Number(formData.capacity) < 0
+      Number(formData.capacity) < 1
     ) {
       errs.capacity = [
-        "La capacità (vite extra) deve essere un numero intero valido.",
+        "La capacità/vite bonus deve essere un intero maggiore o uguale a 1.",
       ];
     }
 
@@ -154,7 +138,6 @@ export function WheelsManager() {
     if (!validateClientForm()) return;
 
     setFieldErrors({});
-
     const payload: CreateWheelInput = {
       name: formData.name.trim(),
       capacity: Number(formData.capacity),
@@ -172,24 +155,16 @@ export function WheelsManager() {
           id: editingWheel.id,
           payload,
         });
-        toast.success(`Set di ruote "${updated.name}" aggiornato con successo!`);
+        toast.success(`Set ruote "${updated.name}" aggiornato.`);
       } else {
         const created = await createWheelMutation.mutateAsync(payload);
-        toast.success(
-          `Nuovo set di ruote "${created.name}" creato con successo!`
-        );
+        toast.success(`Set ruote "${created.name}" creato.`);
       }
       setIsFormOpen(false);
-    } catch (error) {
-      const parsed = parseApiError(error);
+    } catch (err) {
+      const parsed = parseApiError(err);
       if (parsed.fieldErrors) {
         setFieldErrors(parsed.fieldErrors);
-      } else if (parsed.status === 409) {
-        setFieldErrors({
-          name: [
-            parsed.message || "Esiste già un set di ruote con questo nome.",
-          ],
-        });
       }
       toast.error(parsed.message);
     }
@@ -199,345 +174,160 @@ export function WheelsManager() {
     if (!deletingWheel) return;
     try {
       await deleteWheelMutation.mutateAsync(deletingWheel.id);
-      toast.success(
-        `Set di ruote "${deletingWheel.name}" eliminato con successo.`
-      );
+      toast.success(`Set ruote "${deletingWheel.name}" eliminato.`);
       setDeletingWheel(null);
-    } catch (error) {
-      const parsed = parseApiError(error);
-      toast.error(parsed.message);
+    } catch (err) {
+      toast.error(parseApiError(err).message);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Title level="1" className="!text-2xl !font-bold !text-zinc-100">
-              🛞 Gestione Ruote (Wheels)
-            </Title>
-            <Badge type="number" mode="secondary">
-              {wheels.length}
-            </Badge>
-          </div>
-          <Subheadline level="2" className="mt-1 !text-zinc-400">
-            Gestisci i set di ruote, la capacità di vite extra fornite e i
-            requisiti di sblocco
-          </Subheadline>
-        </div>
-      </div>
+  const columns: DataTableColumn<Wheel>[] = useMemo(
+    () => [
+      {
+        key: "name",
+        header: "Nome Set Ruote",
+        render: (wheel) => (
+          <span className="font-semibold text-tg-primary">{wheel.name}</span>
+        ),
+      },
+      {
+        key: "capacity",
+        header: "Vite Bonus (Capacity)",
+        align: "right",
+        render: (wheel) => (
+          <span className="font-mono text-xs">+{wheel.capacity} vite</span>
+        ),
+      },
+      {
+        key: "unlock",
+        header: "Sblocco & Costo",
+        render: (wheel) => (
+          <UnlockTypeBadge
+            unlockType={wheel.unlockType}
+            unlockValue={wheel.unlockValue}
+          />
+        ),
+      },
+      {
+        key: "status",
+        header: "Stato",
+        align: "center",
+        render: (wheel) => <StatusBadge isActive={wheel.isActive} />,
+      },
+    ],
+    []
+  );
 
-      {/* Toolbar */}
-      <CatalogToolbar
+  return (
+    <>
+      <DataTableManager<Wheel>
+        title="Set Ruote"
+        description="Pneumatici e vite supplementari associate"
+        items={filteredWheels}
+        columns={columns}
+        getId={(wheel) => wheel.id}
+        getIsActive={(wheel) => wheel.isActive}
+        totalCount={wheels.length}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        isError={isError}
+        errorMessage={isError ? parseApiError(error).message : undefined}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        searchPlaceholder="Cerca ruote per nome..."
         unlockFilter={unlockFilter}
         onUnlockFilterChange={setUnlockFilter}
         onlyActive={onlyActive}
         onOnlyActiveChange={setOnlyActive}
         onRefresh={handleRefresh}
-        isRefreshing={isFetching}
-        onCreateNew={openCreateModal}
         createButtonLabel="Nuove Ruote"
-        totalCount={wheels.length}
-        filteredCount={filteredWheels.length}
-      />
-
-      {/* Table inside Telegram UI Section */}
-      <Section
-        header="Elenco Set di Ruote"
-        className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50"
-      >
-        {isLoading ? (
-          <Placeholder
-            header="Caricamento set di ruote..."
-            description="Recupero dati dal server in corso"
-          >
-            <Spinner size="l" />
-          </Placeholder>
-        ) : isError ? (
-          <Placeholder
-            header="Errore di caricamento"
-            description={parseApiError(error).message}
-            action={
-              <Button size="s" mode="bezeled" onClick={handleRefresh}>
-                Riprova
-              </Button>
-            }
-          />
-        ) : filteredWheels.length === 0 ? (
-          <Placeholder
-            header="Nessun set di ruote trovato"
-            description="Non ci sono ruote corrispondenti ai filtri selezionati."
-            action={
-              <Button size="s" mode="bezeled" onClick={openCreateModal}>
-                Crea Nuove Ruote
-              </Button>
-            }
-          >
-            <Disc className="h-10 w-10 text-zinc-600" />
-          </Placeholder>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                <tr>
-                  <th className="px-4 py-3.5">ID</th>
-                  <th className="px-4 py-3.5">Nome Set Ruote</th>
-                  <th className="px-4 py-3.5">Capacità (Vite Extra)</th>
-                  <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
-                  <th className="px-4 py-3.5">Stato</th>
-                  <th className="px-4 py-3.5 text-right">Azioni</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {filteredWheels.map((wheel) => (
-                  <tr
-                    key={wheel.id}
-                    className="hover:bg-zinc-800/30 transition-colors"
-                  >
-                    <td className="px-4 py-3.5 font-mono text-xs text-zinc-500">
-                      #{wheel.id}
-                    </td>
-                    <td className="px-4 py-3.5 font-semibold text-zinc-100">
-                      {wheel.name}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Chip
-                        mode="outline"
-                        before={
-                          <Heart className="h-3.5 w-3.5 fill-rose-500/30 text-rose-400" />
-                        }
-                        className="!rounded-lg !py-1 !px-2.5 !border-rose-500/30 !bg-rose-500/10 !text-rose-400 text-xs font-semibold"
-                      >
-                        {wheel.capacity > 0
-                          ? `+${wheel.capacity}`
-                          : wheel.capacity}{" "}
-                        {Math.abs(wheel.capacity) === 1
-                          ? "vita extra"
-                          : "vite extra"}
-                      </Chip>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <UnlockTypeBadge
-                        unlockType={wheel.unlockType}
-                        unlockValue={wheel.unlockValue}
-                      />
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <StatusBadge isActive={wheel.isActive} />
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-2">
-                        <Button
-                          type="button"
-                          size="s"
-                          mode="bezeled"
-                          onClick={() => openEditModal(wheel)}
-                          before={<Pencil className="h-3.5 w-3.5" />}
-                        >
-                          Modifica
-                        </Button>
-                        <IconButton
-                          type="button"
-                          size="s"
-                          mode="gray"
-                          onClick={() => setDeletingWheel(wheel)}
-                          title="Elimina ruote"
-                          className="hover:!text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </IconButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      {/* Create / Edit Modal with Telegram UI Form Controls */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
-          >
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <div>
-                <Title level="3" className="!text-lg !font-bold !text-zinc-100">
-                  {editingWheel
-                    ? `Modifica Ruote #${editingWheel.id}`
-                    : "Nuovo Set di Ruote"}
-                </Title>
-                <Caption level="1" className="!text-zinc-400">
-                  Configura nome, capacità vite extra e requisiti di sblocco
-                </Caption>
-              </div>
-              <IconButton
-                type="button"
-                size="s"
-                mode="gray"
-                onClick={() => setIsFormOpen(false)}
-                disabled={isSaving}
-              >
-                <X className="h-4 w-4" />
-              </IconButton>
+        isFormOpen={isFormOpen}
+        formTitle={
+          editingWheel ? `Modifica Ruote #${editingWheel.id}` : "Nuove Ruote"
+        }
+        formSubtitle="Compila nome, capacità e condizioni di sblocco."
+        isSaving={isSaving}
+        onOpenCreate={openCreate}
+        onOpenEdit={openEdit}
+        onCloseForm={() => setIsFormOpen(false)}
+        onRequestDelete={setDeletingWheel}
+        onSubmitForm={handleSubmit}
+        submitButtonLabel={editingWheel ? "Salva Modifiche" : "Crea Ruote"}
+        renderFormFields={() => (
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-tg-muted">
+                Nome Ruote *
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={100}
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder="es. Offroad Mud, Slick Pro..."
+                className="h-8 w-full rounded-md border border-tg-border bg-tg-surface px-2.5 text-xs text-tg-primary focus:border-tg-accent focus:outline-none"
+              />
+              {fieldErrors.name && (
+                <p className="mt-1 text-[11px] text-tg-danger">
+                  {fieldErrors.name.join(", ")}
+                </p>
+              )}
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-              <Section
-                header="Dettagli Tecnici Ruote"
-                className="overflow-hidden rounded-xl border border-zinc-800/80"
-              >
-                <Input
-                  header="Nome Set Ruote *"
-                  required
-                  maxLength={100}
-                  status={fieldErrors.name ? "error" : "default"}
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="es. Slick Pro, Offroad Monster, Turbo Grip..."
-                />
-                {fieldErrors.name && (
-                  <div className="px-5 pb-2">
-                    <Caption level="1" className="!text-red-400">
-                      {fieldErrors.name.join(", ")}
-                    </Caption>
-                  </div>
-                )}
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold text-tg-muted">
+                Capacità / Vite Supplementari (capacity) *
+              </label>
+              <input
+                type="number"
+                required
+                min={1}
+                step={1}
+                value={formData.capacity}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    capacity: Number(e.target.value),
+                  }))
+                }
+                className="h-8 w-full rounded-md border border-tg-border bg-tg-surface px-2.5 font-mono text-xs text-tg-primary focus:border-tg-accent focus:outline-none"
+              />
+              {fieldErrors.capacity && (
+                <p className="mt-1 text-[11px] text-tg-danger">
+                  {fieldErrors.capacity.join(", ")}
+                </p>
+              )}
+            </div>
 
-                <Input
-                  header="Capacità / Vite Extra (capacity) *"
-                  type="number"
-                  required
-                  min={0}
-                  step={1}
-                  status={fieldErrors.capacity ? "error" : "default"}
-                  value={formData.capacity}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      capacity: Number(e.target.value),
-                    }))
-                  }
-                />
-                {fieldErrors.capacity && (
-                  <div className="px-5 pb-2">
-                    <Caption level="1" className="!text-red-400">
-                      {fieldErrors.capacity.join(", ")}
-                    </Caption>
-                  </div>
-                )}
-              </Section>
-
-              <Section
-                header="Sblocco & Stato"
-                className="overflow-hidden rounded-xl border border-zinc-800/80"
-              >
-                <Select
-                  header="Metodo di Sblocco *"
-                  status={fieldErrors.unlockType ? "error" : "default"}
-                  value={formData.unlockType}
-                  onChange={(e) =>
-                    handleUnlockTypeChange(e.target.value as UnlockType)
-                  }
-                >
-                  {Object.values(UnlockType).map((type) => (
-                    <option key={type} value={type}>
-                      {UNLOCK_TYPE_META[type].label}
-                    </option>
-                  ))}
-                </Select>
-
-                <Input
-                  header="Valore / Costo Sblocco"
-                  type="number"
-                  min={0}
-                  step={1}
-                  status={fieldErrors.unlockValue ? "error" : "default"}
-                  disabled={formData.unlockType === UnlockType.FREE}
-                  value={
-                    formData.unlockType === UnlockType.FREE
-                      ? 0
-                      : formData.unlockValue
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      unlockValue: Number(e.target.value),
-                    }))
-                  }
-                />
-                {fieldErrors.unlockValue && (
-                  <div className="px-5 pb-2">
-                    <Caption level="1" className="!text-red-400">
-                      {fieldErrors.unlockValue.join(", ")}
-                    </Caption>
-                  </div>
-                )}
-
-                <Cell
-                  Component="label"
-                  subtitle="Rendi questo set di ruote disponibile nel catalogo"
-                  after={
-                    <Switch
-                      checked={formData.isActive}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          isActive: e.target.checked,
-                        }))
-                      }
-                    />
-                  }
-                >
-                  Stato Visibilità (isActive)
-                </Cell>
-              </Section>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-                <Button
-                  type="button"
-                  size="m"
-                  mode="gray"
-                  onClick={() => setIsFormOpen(false)}
-                  disabled={isSaving}
-                >
-                  Annulla
-                </Button>
-                <Button
-                  type="submit"
-                  size="m"
-                  mode="filled"
-                  loading={isSaving}
-                  disabled={isSaving}
-                >
-                  {editingWheel ? "Salva Modifiche" : "Crea Ruote"}
-                </Button>
-              </div>
-            </form>
+            <UnlockFieldsSection
+              unlockType={formData.unlockType}
+              unlockValue={formData.unlockValue}
+              isActive={formData.isActive}
+              onUnlockTypeChange={handleUnlockTypeChange}
+              onUnlockValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, unlockValue: val }))
+              }
+              onIsActiveChange={(checked) =>
+                setFormData((prev) => ({ ...prev, isActive: checked }))
+              }
+              activeSubtitle="Rendi il set di ruote selezionabile nel garage"
+              fieldErrors={fieldErrors}
+            />
           </div>
-        </div>
-      )}
+        )}
+      />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmDeleteModal
         isOpen={Boolean(deletingWheel)}
-        title="Elimina Ruote dal Catalogo"
-        itemName={deletingWheel?.name || ""}
-        isLoading={isDeleting}
+        title="Elimina Ruote"
+        itemName={deletingWheel?.name ?? ""}
+        isDeleting={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeletingWheel(null)}
       />
-    </div>
+    </>
   );
 }

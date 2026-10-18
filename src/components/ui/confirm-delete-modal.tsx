@@ -1,20 +1,13 @@
 "use client";
 
-import {
-  Banner,
-  Button,
-  IconButton,
-  Section,
-  Text,
-  Title,
-} from "@telegram-apps/telegram-ui";
-import { AlertTriangle, Trash2, X } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Trash2 } from "lucide-react";
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
   title: string;
   itemName: string;
-  isLoading: boolean;
+  isDeleting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -23,80 +16,54 @@ export function ConfirmDeleteModal({
   isOpen,
   title,
   itemName,
-  isLoading,
+  isDeleting,
   onConfirm,
   onCancel,
 }: ConfirmDeleteModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-5 shadow-2xl"
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <Title level="3" className="!text-zinc-100">
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !isDeleting) onCancel();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-32px)] max-w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-tg-border bg-tg-surface/95 p-6 text-tg-primary shadow-2xl backdrop-blur-xl focus:outline-none">
+          <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-tg-danger-soft text-tg-danger">
+            <Trash2 className="h-5 w-5" />
+          </div>
+          <Dialog.Title className="text-[17px] font-extrabold text-tg-primary">
             {title}
-          </Title>
-          <IconButton
-            size="s"
-            mode="gray"
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            aria-label="Chiudi"
-          >
-            <X className="h-4 w-4" />
-          </IconButton>
-        </div>
+          </Dialog.Title>
+          <Dialog.Description className="mt-1.5 text-[14px] leading-snug text-tg-muted">
+            Confermi l&apos;eliminazione definitiva di{" "}
+            <strong className="font-bold text-tg-primary">
+              &ldquo;{itemName}&rdquo;
+            </strong>
+            ? L&apos;operazione non può essere annullata.
+          </Dialog.Description>
 
-        <Section className="overflow-hidden rounded-xl border border-red-500/25 bg-red-500/5">
-          <Banner
-            type="inline"
-            before={
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/15 text-red-400">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-            }
-            header="Conferma eliminazione permanente"
-            subheader={`Elemento selezionato: "${itemName}"`}
-            description="Questa operazione rimuoverà definitivamente il record dal database di Kart-Gram e non può essere annullata."
-          />
-        </Section>
-
-        <div className="mt-4 px-1">
-          <Text className="!text-xs !text-zinc-400">
-            La cache del catalogo verrà aggiornata automaticamente al termine
-            dell&apos;operazione.
-          </Text>
-        </div>
-
-        <div className="mt-5 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-          <Button
-            type="button"
-            size="m"
-            mode="gray"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
-            Annulla
-          </Button>
-          <Button
-            type="button"
-            size="m"
-            mode="filled"
-            loading={isLoading}
-            disabled={isLoading}
-            onClick={onConfirm}
-            before={<Trash2 className="h-4 w-4" />}
-            className="!bg-red-600 !text-white hover:!bg-red-500"
-          >
-            Elimina definitivamente
-          </Button>
-        </div>
-      </div>
-    </div>
+          <div className="mt-6 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isDeleting}
+              className="rounded-full px-4 py-2 text-[13px] font-bold text-tg-accent hover:bg-tg-hover focus-visible:outline-2 focus-visible:outline-tg-accent disabled:opacity-50 cursor-pointer"
+            >
+              Annulla
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="rounded-full bg-tg-danger px-4 py-2 text-[13px] font-bold text-white shadow-sm hover:opacity-90 focus-visible:outline-2 focus-visible:outline-tg-danger disabled:opacity-50 cursor-pointer"
+            >
+              {isDeleting ? "Eliminazione..." : "Elimina"}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

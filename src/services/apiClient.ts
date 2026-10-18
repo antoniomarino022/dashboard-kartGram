@@ -50,26 +50,49 @@ export function parseApiError(error: unknown): ParsedApiError {
       };
     }
 
+    if (status === 404) {
+      const apiMsg =
+        typeof data === "object" && data !== null
+          ? data.message || data.error
+          : undefined;
+      return {
+        status: 404,
+        message:
+          apiMsg ||
+          `Endpoint API non trovato (404: ${axiosErr.config?.url || ""}). Verifica che il backend aggiornato sia stato deployato o sia attivo.`,
+        isForbidden: false,
+      };
+    }
+
     if (status === 400 && data?.errors) {
       const messages = Object.entries(data.errors)
         .flatMap(([field, errs]) => errs.map((e) => `${field}: ${e}`))
         .join(" | ");
       return {
         status: 400,
-        message: messages || data.message || data.error || "Errore di validazione dei dati.",
+        message:
+          messages ||
+          data.message ||
+          data.error ||
+          "Errore di validazione dei dati.",
         fieldErrors: data.errors,
         isForbidden: false,
       };
     }
 
+    const serverMessage =
+      typeof data === "object" && data !== null
+        ? data.message || data.error
+        : undefined;
+
     return {
       status,
       message:
-        data?.message ||
-        data?.error ||
+        serverMessage ||
         axiosErr.message ||
         "Si è verificato un errore durante la comunicazione con il server.",
-      fieldErrors: data?.errors,
+      fieldErrors:
+        typeof data === "object" && data !== null ? data.errors : undefined,
       isForbidden: false,
     };
   }
