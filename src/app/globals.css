@@ -1,184 +1,163 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Palette KartGram: grigi neutri (notte nel tema scuro) + giallo del gioco.
+ * Il giallo è un colore di riempimento (bottoni, voce attiva); per testi, bordi e focus si usa
+ * --tg-accent-ink, che nel tema chiaro è un ambra scuro leggibile su bianco.
+ */
 :root {
-  /* Clean, crisp Light Theme Tokens */
+  --tg-bg-chat: #f4f4f5;
   --tg-bg-surface: #ffffff;
-  --tg-bg-secondary: #f8fafc;
-  --tg-bg-chat: #f1f5f9;
-  --tg-bg-chat-pattern: rgba(148, 163, 184, 0.08);
-  --tg-bg-bubble-in: #ffffff;
-  --tg-bg-bubble-out: #eff6ff;
-  --tg-bg-hover: #f1f5f9;
-  --tg-bg-active: #0284c7;
-  --tg-bg-selected: rgba(2, 132, 199, 0.08);
-  --tg-bg-pill: rgba(15, 23, 42, 0.65);
-  --tg-accent: #0284c7;
-  --tg-accent-hover: #0369a1;
-  --tg-accent-soft: rgba(2, 132, 199, 0.1);
-  --tg-text-primary: #0f172a;
-  --tg-text-secondary: #64748b;
-  --tg-text-meta-out: #0284c7;
-  --tg-text-on-accent: #ffffff;
-  --tg-border: #e2e8f0;
-  --tg-badge-unread: #0284c7;
-  --tg-badge-muted: #94a3b8;
-  --tg-danger: #ef4444;
-  --tg-danger-soft: rgba(239, 68, 68, 0.1);
-  --tg-success: #10b981;
-  --tg-success-soft: rgba(16, 185, 129, 0.1);
-  --tg-warning: #f59e0b;
-  --tg-warning-soft: rgba(245, 158, 11, 0.1);
-  --tg-purple: #8b5cf6;
-  --tg-purple-soft: rgba(139, 92, 246, 0.1);
-  --tg-cyan: #06b6d4;
-  --tg-cyan-soft: rgba(6, 182, 212, 0.1);
-  --tg-pink: #ec4899;
-  --tg-pink-soft: rgba(236, 72, 153, 0.1);
+  --tg-bg-secondary: #efeff1;
+  --tg-bg-hover: #e8e8eb;
+  --tg-border: #e2e2e6;
 
-  /* Deterministic Avatar Palette */
-  --tg-avatar-red: #ef4444;
-  --tg-avatar-orange: #f97316;
-  --tg-avatar-violet: #8b5cf6;
-  --tg-avatar-green: #10b981;
-  --tg-avatar-cyan: #06b6d4;
-  --tg-avatar-blue: #0284c7;
-  --tg-avatar-pink: #ec4899;
+  --tg-text-primary: #18181b;
+  --tg-text-secondary: #52525b;
 
-  /* Gradients & Shadows */
-  --tg-gradient-primary: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  --tg-gradient-active-chat: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  --tg-gradient-bubble-out: #eff6ff;
-  --tg-shadow-bubble: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
-  --tg-shadow-elevated: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  --tg-accent: #ffd60a;
+  --tg-accent-hover: #f2c800;
+  --tg-accent-soft: rgba(255, 214, 10, 0.18);
+  --tg-accent-ink: #8a6100;
+  --tg-text-on-accent: #18181b;
+
+  --tg-danger: #c62828;
+  --tg-danger-soft: rgba(198, 40, 40, 0.09);
+  --tg-text-on-danger: #ffffff;
+  --tg-success: #0b7a43;
+  --tg-success-soft: rgba(11, 122, 67, 0.1);
+  --tg-warning: #9a5b00;
+  --tg-warning-soft: rgba(245, 158, 11, 0.14);
+  --tg-badge-muted: #a1a1aa;
+
+  --tg-shadow-card: 0 1px 2px rgba(24, 24, 27, 0.05), 0 2px 8px rgba(24, 24, 27, 0.04);
+  --tg-shadow-elevated: 0 18px 40px -12px rgba(24, 24, 27, 0.25);
+
+  /* pista di sfondo (track-backdrop.tsx) */
+  --trk-opacity: 0.55;
+  --trk-runoff: #ececee;
+  --trk-asphalt: #dcdce0;
+  --trk-line: #ffffff;
+  --trk-kerb-a: #f0a3a3;
+  --trk-kerb-b: #ffffff;
+  --trk-kerb-dark: #18181b;
+  --trk-skid: rgba(24, 24, 27, 0.18);
+  --trk-smoke: rgba(255, 255, 255, 0.9);
+  --trk-tire: #3f3f46;
+  --trk-pillar: #c4c4cc;
+  --trk-pillar-top: #ffd60a;
+  --trk-kart: #ffd60a;
+  --trk-kart-dark: #18181b;
+  --trk-shadow: rgba(24, 24, 27, 0.25);
+
+  color-scheme: light;
 }
 
 .dark {
-  /* Clean, focused Dark Theme Tokens */
-  --tg-bg-surface: #0f172a;
-  --tg-bg-secondary: #1e293b;
-  --tg-bg-chat: #090d16;
-  --tg-bg-chat-pattern: rgba(148, 163, 184, 0.05);
-  --tg-bg-bubble-in: #1e293b;
-  --tg-bg-bubble-out: #172554;
-  --tg-bg-hover: #1e293b;
-  --tg-bg-active: #38bdf8;
-  --tg-bg-selected: rgba(56, 189, 248, 0.12);
-  --tg-bg-pill: rgba(15, 23, 42, 0.85);
-  --tg-accent: #38bdf8;
-  --tg-accent-hover: #0284c7;
-  --tg-accent-soft: rgba(56, 189, 248, 0.12);
-  --tg-text-primary: #f8fafc;
-  --tg-text-secondary: #94a3b8;
-  --tg-text-meta-out: #38bdf8;
-  --tg-text-on-accent: #0f172a;
-  --tg-border: #334155;
-  --tg-badge-unread: #38bdf8;
-  --tg-badge-muted: #475569;
-  --tg-danger: #f87171;
-  --tg-danger-soft: rgba(248, 113, 113, 0.12);
-  --tg-success: #34d399;
-  --tg-success-soft: rgba(52, 211, 153, 0.12);
-  --tg-warning: #fbbf24;
-  --tg-warning-soft: rgba(251, 191, 36, 0.12);
-  --tg-purple: #c084fc;
-  --tg-purple-soft: rgba(192, 132, 252, 0.12);
-  --tg-cyan: #22d3ee;
-  --tg-cyan-soft: rgba(34, 211, 238, 0.12);
-  --tg-pink: #f472b6;
-  --tg-pink-soft: rgba(244, 114, 182, 0.12);
+  --tg-bg-chat: #111214;
+  --tg-bg-surface: #18191c;
+  --tg-bg-secondary: #1f2024;
+  --tg-bg-hover: #26282c;
+  --tg-border: #2e3035;
 
-  /* Gradients & Shadows */
-  --tg-gradient-primary: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  --tg-gradient-active-chat: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  --tg-gradient-bubble-out: #172554;
-  --tg-shadow-bubble: 0 1px 3px rgba(0, 0, 0, 0.25);
-  --tg-shadow-elevated: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  --tg-text-primary: #ececee;
+  --tg-text-secondary: #a0a3ab;
+
+  --tg-accent: #ffd60a;
+  --tg-accent-hover: #ffe24d;
+  --tg-accent-soft: rgba(255, 214, 10, 0.14);
+  --tg-accent-ink: #ffd60a;
+  --tg-text-on-accent: #17181a;
+
+  --tg-danger: #ff7a7a;
+  --tg-danger-soft: rgba(255, 122, 122, 0.13);
+  --tg-text-on-danger: #2a0707;
+  --tg-success: #4fe0a5;
+  --tg-success-soft: rgba(79, 224, 165, 0.12);
+  --tg-warning: #ffbd4a;
+  --tg-warning-soft: rgba(255, 189, 74, 0.13);
+  --tg-badge-muted: #4a4d55;
+
+  --tg-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --tg-shadow-elevated: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
+
+  --trk-opacity: 0.6;
+  --trk-runoff: #151618;
+  --trk-asphalt: #1e1f23;
+  --trk-line: rgba(255, 214, 10, 0.35);
+  --trk-kerb-a: #7a2e33;
+  --trk-kerb-b: #2e3035;
+  --trk-kerb-dark: #ececee;
+  --trk-skid: rgba(0, 0, 0, 0.35);
+  --trk-smoke: rgba(200, 200, 210, 0.22);
+  --trk-tire: #0b0b0c;
+  --trk-pillar: #2e3035;
+  --trk-pillar-top: #ffd60a;
+  --trk-kart: #ffd60a;
+  --trk-kart-dark: #17181a;
+  --trk-shadow: rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
 }
 
 @theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: var(--font-barlow), var(--font-inter), sans-serif;
+
+  --color-tg-chat: var(--tg-bg-chat);
   --color-tg-surface: var(--tg-bg-surface);
   --color-tg-secondary: var(--tg-bg-secondary);
-  --color-tg-chat: var(--tg-bg-chat);
-  --color-tg-bubble-in: var(--tg-bg-bubble-in);
-  --color-tg-bubble-out: var(--tg-bg-bubble-out);
   --color-tg-hover: var(--tg-bg-hover);
-  --color-tg-active: var(--tg-bg-active);
-  --color-tg-selected: var(--tg-bg-selected);
-  --color-tg-pill: var(--tg-bg-pill);
+  --color-tg-border: var(--tg-border);
+  --color-tg-primary: var(--tg-text-primary);
+  --color-tg-muted: var(--tg-text-secondary);
   --color-tg-accent: var(--tg-accent);
   --color-tg-accent-hover: var(--tg-accent-hover);
   --color-tg-accent-soft: var(--tg-accent-soft);
-  --color-tg-primary: var(--tg-text-primary);
-  --color-tg-muted: var(--tg-text-secondary);
-  --color-tg-meta-out: var(--tg-text-meta-out);
+  --color-tg-accent-ink: var(--tg-accent-ink);
   --color-tg-on-accent: var(--tg-text-on-accent);
-  --color-tg-border: var(--tg-border);
-  --color-tg-unread: var(--tg-badge-unread);
-  --color-tg-badge-muted: var(--tg-badge-muted);
   --color-tg-danger: var(--tg-danger);
   --color-tg-danger-soft: var(--tg-danger-soft);
   --color-tg-success: var(--tg-success);
+  --color-tg-success-soft: var(--tg-success-soft);
   --color-tg-warning: var(--tg-warning);
-}
+  --color-tg-warning-soft: var(--tg-warning-soft);
+  --color-tg-on-danger: var(--tg-text-on-danger);
+  --color-tg-badge-muted: var(--tg-badge-muted);
 
-* {
-  box-sizing: border-box;
+  --shadow-card: var(--tg-shadow-card);
+  --shadow-elevated: var(--tg-shadow-elevated);
 }
 
 html,
 body {
-  margin: 0;
-  padding: 0;
   height: 100%;
   background-color: var(--tg-bg-chat);
   color: var(--tg-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.45;
+  font-family: var(--font-sans);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle clean background without colorful mesh slop */
-.tg-chat-wallpaper {
-  background-color: var(--tg-bg-chat);
+body {
+  font-size: 15px;
 }
 
-.tg-bubble-out-gradient {
-  background-color: var(--tg-bg-bubble-out);
-  box-shadow: var(--tg-shadow-bubble);
+:focus-visible {
+  outline: 2px solid var(--tg-accent-ink);
+  outline-offset: 2px;
 }
 
-.tg-bubble-in-card {
-  background-color: var(--tg-bg-bubble-in);
-  box-shadow: var(--tg-shadow-bubble);
+::selection {
+  background: var(--tg-accent);
+  color: var(--tg-text-on-accent);
 }
 
-.tg-active-chat-gradient {
-  background-color: var(--tg-accent);
-}
-
-.tg-btn-gradient {
-  background-color: var(--tg-accent);
-  color: #ffffff;
-}
-
-.tg-btn-gradient:hover {
-  background-color: var(--tg-accent-hover);
-}
-
-/* Hide scrollbar for horizontal pill bars while keeping scrollability */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Custom thin Telegram-style scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -187,6 +166,8 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--tg-badge-muted);
+  border: 2px solid transparent;
+  background-clip: padding-box;
   border-radius: 9999px;
 }
 

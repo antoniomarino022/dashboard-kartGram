@@ -1,32 +1,36 @@
 import axios, { AxiosError } from "axios";
+import { API_URL } from "@/lib/api-url";
 import type {
+  AdminStats,
   ApiErrorResponse,
-  Car,
-  Character,
-  CreateCarInput,
-  CreateCharacterInput,
-  CreateMapInput,
-  CreatePaintInput,
-  CreatePowerupInput,
-  CreateWheelInput,
-  GameMap,
-  Paint,
-  Powerup,
-  UpdateCarInput,
-  UpdateCharacterInput,
-  UpdateMapInput,
-  UpdatePaintInput,
-  UpdatePowerupInput,
-  UpdateWheelInput,
-  Wheel,
+  CreateItemInput,
+  Item,
+  PaymentsPage,
+  PlayerDetail,
+  PlayersPage,
+  UpdateItemInput,
+  UpdatePlayerInput,
 } from "@/types/api";
 
 export const apiClient = axios.create({
-  baseURL: `${process.env.NEXT_PUBLIC_API_URL}/api`,
+  baseURL: `${API_URL}/api`,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+// sessione scaduta → login
+apiClient.interceptors.response.use(undefined, (error: unknown) => {
+  if (
+    axios.isAxiosError(error) &&
+    error.response?.status === 401 &&
+    typeof window !== "undefined" &&
+    window.location.pathname !== "/login"
+  ) {
+    window.location.replace("/login");
+  }
+  return Promise.reject(error);
 });
 
 export interface ParsedApiError {
@@ -42,11 +46,15 @@ export function parseApiError(error: unknown): ParsedApiError {
     const status = axiosErr.response?.status;
     const data = axiosErr.response?.data;
 
-    if (status === 403) {
+    if (status === 401 || status === 403) {
+      const apiMsg =
+        typeof data === "object" && data !== null
+          ? data.message || data.error
+          : undefined;
       return {
-        status: 403,
-        message: "Accesso negato: sono richiesti privilegi di amministratore.",
-        isForbidden: true,
+        status,
+        message: apiMsg || (status === 401 ? "Sessione scaduta" : "Accesso negato"),
+        isForbidden: status === 403,
       };
     }
 
@@ -59,7 +67,7 @@ export function parseApiError(error: unknown): ParsedApiError {
         status: 404,
         message:
           apiMsg ||
-          `Endpoint API non trovato (404: ${axiosErr.config?.url || ""}). Verifica che il backend aggiornato sia stato deployato o sia attivo.`,
+          `Non trovato (${axiosErr.config?.url || ""})`,
         isForbidden: false,
       };
     }
@@ -112,135 +120,52 @@ export function parseApiError(error: unknown): ParsedApiError {
 
 // --- API Services ---
 
-export const carsService = {
-  getAll: async (): Promise<Car[]> => {
-    const { data } = await apiClient.get<Car[]>("/car");
+export const adminService = {
+  stats: async (): Promise<AdminStats> => {
+    const { data } = await apiClient.get<AdminStats>("/admin/stats");
     return data;
   },
-  getById: async (id: number): Promise<Car> => {
-    const { data } = await apiClient.get<Car>(`/car/${id}`);
+  items: async (): Promise<Item[]> => {
+    const { data } = await apiClient.get<Item[]>("/admin/items");
     return data;
   },
-  create: async (payload: CreateCarInput): Promise<Car> => {
-    const { data } = await apiClient.post<Car>("/car", payload);
+  createItem: async (payload: CreateItemInput): Promise<Item> => {
+    const { data } = await apiClient.post<Item>("/admin/items", payload);
     return data;
   },
-  update: async (id: number, payload: UpdateCarInput): Promise<Car> => {
-    const { data } = await apiClient.put<Car>(`/car/${id}`, payload);
+  updateItem: async (id: string, payload: UpdateItemInput): Promise<Item> => {
+    const { data } = await apiClient.put<Item>(`/admin/items/${encodeURIComponent(id)}`, payload);
     return data;
   },
-  remove: async (id: number): Promise<void> => {
-    await apiClient.delete(`/car/${id}`);
+  removeItem: async (id: string): Promise<void> => {
+    await apiClient.delete(`/admin/items/${encodeURIComponent(id)}`);
+  },
+  players: async (q: string, page: number): Promise<PlayersPage> => {
+    const { data } = await apiClient.get<PlayersPage>("/admin/players", {
+      params: { q: q || undefined, page },
+    });
+    return data;
+  },
+  player: async (id: number): Promise<PlayerDetail> => {
+    const { data } = await apiClient.get<PlayerDetail>(`/admin/players/${id}`);
+    return data;
+  },
+  updatePlayer: async (id: number, payload: UpdatePlayerInput): Promise<PlayerDetail> => {
+    const { data } = await apiClient.patch<PlayerDetail>(`/admin/players/${id}`, payload);
+    return data;
+  },
+  grantItem: async (id: number, itemId: string): Promise<PlayerDetail> => {
+    const { data } = await apiClient.post<PlayerDetail>(`/admin/players/${id}/items`, { itemId });
+    return data;
+  },
+  revokeItem: async (id: number, itemId: string): Promise<PlayerDetail> => {
+    const { data } = await apiClient.delete<PlayerDetail>(
+      `/admin/players/${id}/items/${encodeURIComponent(itemId)}`
+    );
+    return data;
+  },
+  payments: async (page: number): Promise<PaymentsPage> => {
+    const { data } = await apiClient.get<PaymentsPage>("/admin/payments", { params: { page } });
+    return data;
   },
 };
-
-export const charactersService = {
-  getAll: async (): Promise<Character[]> => {
-    const { data } = await apiClient.get<Character[]>("/character");
-    return data;
-  },
-  getById: async (id: number): Promise<Character> => {
-    const { data } = await apiClient.get<Character>(`/character/${id}`);
-    return data;
-  },
-  create: async (payload: CreateCharacterInput): Promise<Character> => {
-    const { data } = await apiClient.post<Character>("/character", payload);
-    return data;
-  },
-  update: async (id: number, payload: UpdateCharacterInput): Promise<Character> => {
-    const { data } = await apiClient.put<Character>(`/character/${id}`, payload);
-    return data;
-  },
-  remove: async (id: number): Promise<void> => {
-    await apiClient.delete(`/character/${id}`);
-  },
-};
-
-export const mapsService = {
-  getAll: async (): Promise<GameMap[]> => {
-    const { data } = await apiClient.get<GameMap[]>("/maps");
-    return data;
-  },
-  getById: async (id: number): Promise<GameMap> => {
-    const { data } = await apiClient.get<GameMap>(`/maps/${id}`);
-    return data;
-  },
-  create: async (payload: CreateMapInput): Promise<GameMap> => {
-    const { data } = await apiClient.post<GameMap>("/maps", payload);
-    return data;
-  },
-  update: async (id: number, payload: UpdateMapInput): Promise<GameMap> => {
-    const { data } = await apiClient.put<GameMap>(`/maps/${id}`, payload);
-    return data;
-  },
-  remove: async (id: number): Promise<void> => {
-    await apiClient.delete(`/maps/${id}`);
-  },
-};
-
-export const paintsService = {
-  getAll: async (): Promise<Paint[]> => {
-    const { data } = await apiClient.get<Paint[]>("/paints");
-    return data;
-  },
-  getById: async (id: number): Promise<Paint> => {
-    const { data } = await apiClient.get<Paint>(`/paints/${id}`);
-    return data;
-  },
-  create: async (payload: CreatePaintInput): Promise<Paint> => {
-    const { data } = await apiClient.post<Paint>("/paints", payload);
-    return data;
-  },
-  update: async (id: number, payload: UpdatePaintInput): Promise<Paint> => {
-    const { data } = await apiClient.put<Paint>(`/paints/${id}`, payload);
-    return data;
-  },
-  remove: async (id: number): Promise<void> => {
-    await apiClient.delete(`/paints/${id}`);
-  },
-};
-
-export const wheelsService = {
-  getAll: async (): Promise<Wheel[]> => {
-    const { data } = await apiClient.get<Wheel[]>("/wheels");
-    return data;
-  },
-  getById: async (id: number): Promise<Wheel> => {
-    const { data } = await apiClient.get<Wheel>(`/wheels/${id}`);
-    return data;
-  },
-  create: async (payload: CreateWheelInput): Promise<Wheel> => {
-    const { data } = await apiClient.post<Wheel>("/wheels", payload);
-    return data;
-  },
-  update: async (id: number, payload: UpdateWheelInput): Promise<Wheel> => {
-    const { data } = await apiClient.put<Wheel>(`/wheels/${id}`, payload);
-    return data;
-  },
-  remove: async (id: number): Promise<void> => {
-    await apiClient.delete(`/wheels/${id}`);
-  },
-};
-
-export const powerupsService = {
-  getAll: async (): Promise<Powerup[]> => {
-    const { data } = await apiClient.get<Powerup[]>("/powerups");
-    return data;
-  },
-  getById: async (id: number): Promise<Powerup> => {
-    const { data } = await apiClient.get<Powerup>(`/powerups/${id}`);
-    return data;
-  },
-  create: async (payload: CreatePowerupInput): Promise<Powerup> => {
-    const { data } = await apiClient.post<Powerup>("/powerups", payload);
-    return data;
-  },
-  update: async (id: number, payload: UpdatePowerupInput): Promise<Powerup> => {
-    const { data } = await apiClient.put<Powerup>(`/powerups/${id}`, payload);
-    return data;
-  },
-  remove: async (id: number): Promise<void> => {
-    await apiClient.delete(`/powerups/${id}`);
-  },
-};
-

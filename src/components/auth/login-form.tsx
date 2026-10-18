@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CarFront } from "lucide-react";
+import { TrackBackdrop } from "@/components/layout/track-backdrop";
 import {
   authClient,
   useSession,
@@ -23,7 +23,7 @@ export function LoginForm() {
 
   const urlReasonError =
     searchParams.get("reason") === "not_admin"
-      ? "Accesso negato: account privo di ruolo amministratore."
+      ? "Accesso negato"
       : null;
   const displayedError = errorMessage ?? urlReasonError;
   const isJustLoggedOut = searchParams.get("logged_out") === "1";
@@ -43,7 +43,7 @@ export function LoginForm() {
     setErrorMessage(null);
 
     if (!email.trim() || !password) {
-      setErrorMessage("Inserisci email e password.");
+      setErrorMessage("Inserisci email e password");
       return;
     }
 
@@ -57,8 +57,10 @@ export function LoginForm() {
       if (error) {
         const msg =
           error.status === 403
-            ? "Accesso negato: privilegi di amministratore richiesti."
-            : error.message || "Credenziali non valide.";
+            ? "Accesso negato"
+            : error.status === 401
+              ? "Credenziali non valide"
+              : error.message || "Credenziali non valide";
         setErrorMessage(msg);
         toast.error(msg);
         return;
@@ -67,17 +69,17 @@ export function LoginForm() {
       const loggedUser = data?.user as SessionUserWithRole | undefined;
       if (loggedUser && loggedUser.role && loggedUser.role !== "admin") {
         await authClient.signOut();
-        const msg = "Accesso negato: privilegi di amministratore richiesti.";
+        const msg = "Accesso negato";
         setErrorMessage(msg);
         toast.error(msg);
         return;
       }
 
-      toast.success("Accesso effettuato.");
+      toast.success("Accesso effettuato");
       router.replace("/");
       router.refresh();
     } catch {
-      const msg = "Errore di connessione al server di autenticazione.";
+      const msg = "Server non raggiungibile";
       setErrorMessage(msg);
       toast.error(msg);
     } finally {
@@ -86,23 +88,21 @@ export function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-tg-chat px-4 py-12 text-tg-primary">
-      <div className="w-full max-w-sm rounded-lg border border-tg-border bg-tg-surface p-6 shadow-sm">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-tg-chat px-4 py-12 text-tg-primary">
+      <TrackBackdrop />
+      <div className="relative w-full max-w-sm rounded-2xl border border-tg-border bg-tg-surface/95 p-8 shadow-elevated backdrop-blur-sm">
         {/* Brand Header */}
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-tg-accent text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-tg-accent text-tg-on-accent">
             <CarFront className="h-5 w-5" />
           </div>
-          <h1 className="mt-3 text-base font-bold text-tg-primary">
-            KartGram Admin
+          <h1 className="mt-4 font-display text-3xl font-extrabold uppercase tracking-wide text-tg-primary">
+            KartGram
           </h1>
-          <p className="mt-1 text-xs text-tg-muted">
-            Accedi con le tue credenziali di amministratore
-          </p>
         </div>
 
         {displayedError && (
-          <div className="mb-4 rounded-md border border-tg-danger/30 bg-tg-danger-soft p-2.5 text-xs text-tg-danger">
+          <div className="mb-4 rounded-xl border border-tg-danger/30 bg-tg-danger-soft p-2.5 text-sm text-tg-danger">
             {displayedError}
           </div>
         )}
@@ -111,7 +111,7 @@ export function LoginForm() {
           <div>
             <label
               htmlFor="email"
-              className="mb-1 block text-xs font-semibold text-tg-muted"
+              className="mb-1.5 block text-sm font-medium text-tg-primary"
             >
               Email
             </label>
@@ -125,14 +125,14 @@ export function LoginForm() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={isSubmitting}
               placeholder="admin@kartgram.com"
-              className="h-9 w-full rounded-md border border-tg-border bg-tg-surface px-3 text-xs text-tg-primary placeholder:text-tg-muted transition-colors focus:border-tg-accent focus:outline-none"
+              className="h-11 w-full rounded-xl border border-tg-border bg-tg-surface px-3.5 text-[15px] text-tg-primary placeholder:text-tg-muted transition-colors focus:border-tg-accent-ink focus:outline-none focus:ring-2 focus:ring-tg-accent-ink/30"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="mb-1 block text-xs font-semibold text-tg-muted"
+              className="mb-1.5 block text-sm font-medium text-tg-primary"
             >
               Password
             </label>
@@ -146,28 +146,19 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isSubmitting}
               placeholder="••••••••"
-              className="h-9 w-full rounded-md border border-tg-border bg-tg-surface px-3 text-xs text-tg-primary placeholder:text-tg-muted transition-colors focus:border-tg-accent focus:outline-none"
+              className="h-11 w-full rounded-xl border border-tg-border bg-tg-surface px-3.5 text-[15px] text-tg-primary placeholder:text-tg-muted transition-colors focus:border-tg-accent-ink focus:outline-none focus:ring-2 focus:ring-tg-accent-ink/30"
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="h-9 w-full rounded-md bg-tg-accent text-xs font-semibold text-white transition-colors hover:bg-tg-accent-hover disabled:opacity-50 cursor-pointer"
+            className="h-11 w-full rounded-xl bg-tg-accent text-sm font-semibold text-tg-on-accent transition-colors hover:bg-tg-accent-hover disabled:opacity-50 cursor-pointer"
           >
-            {isSubmitting ? "Accesso in corso..." : "Accedi"}
+            {isSubmitting ? "Accesso…" : "Accedi"}
           </button>
         </form>
 
-        <div className="mt-5 border-t border-tg-border pt-4 text-center text-xs text-tg-muted">
-          Non hai un account?{" "}
-          <Link
-            href="/register"
-            className="font-medium text-tg-accent hover:underline"
-          >
-            Registrati
-          </Link>
-        </div>
       </div>
     </div>
   );

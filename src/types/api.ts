@@ -1,90 +1,136 @@
-export enum UnlockType {
-  FREE = "FREE",
-  COINS = "COINS",
-  STARS = "STARS",
-  SHARES = "SHARES",
-  ADS = "ADS",
-}
+export type ItemKind =
+  | "kart"
+  | "paint"
+  | "wheels"
+  | "trail"
+  | "coin_pack"
+  | "starter_pack";
 
-export interface Car {
-  id: number;
-  name: string;             // Obbligatorio, min 1, max 100
-  carType: string | null;   // Opzionale, max 50 (es. "drift", "speed", "acceleration")
-  speed: number;            // Intero positivo obbligatorio (es. 120)
-  baseLives: number;        // Intero, default 3
-  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
-  unlockValue: number;      // Costo o requisiti di sblocco (default 0)
-  isActive: boolean;        // default true
-}
+export type PaintFinish = "flat" | "metal" | "neon";
 
-export type CreateCarInput = Omit<Car, "id">;
-export type UpdateCarInput = Partial<CreateCarInput>;
-
-export interface Character {
-  id: number;
-  name: string;             // Obbligatorio, min 1, max 100
-  subtype: string | null;   // Opzionale, max 50 (es. "balanced", "drift")
-  bonusStat: string | null; // Modificatore/perk (es. "+10% coins", "shield_on_start")
-  unlockType: UnlockType;
-  unlockValue: number;
+export interface Item {
+  id: string;
+  kind: ItemKind;
+  name: string;
+  priceCoins: number | null;
+  priceStars: number | null;
+  model: string | null;
+  color: string | null;
+  finish: PaintFinish | null;
+  coins: number | null;
+  revives: number | null;
+  grants: string[] | null;
+  sortOrder: number;
   isActive: boolean;
+  createdAt: string;
 }
 
-export type CreateCharacterInput = Omit<Character, "id">;
-export type UpdateCharacterInput = Partial<CreateCharacterInput>;
+export type ItemFields = Omit<Item, "id" | "createdAt">;
+export type CreateItemInput = Pick<Item, "id" | "kind" | "name"> &
+  Partial<Omit<ItemFields, "kind" | "name">>;
+export type UpdateItemInput = Partial<ItemFields>;
 
-export interface GameMap {
+export interface AdminStats {
+  players: { total: number; newWeek: number; banned: number; coins: number };
+  activity: { runsDay: number; runsWeek: number; activeWeek: number };
+  stars: { total: number; month: number; paidCount: number };
+  bestScore: number;
+}
+
+export interface PlayerSummary {
   id: number;
-  name: string;             // Obbligatorio, min 1, max 100
-  mapType: string | null;   // Opzionale, max 50 (es. "asphalt", "desert", "cyberpunk")
-  unlockType: UnlockType;
-  unlockValue: number;
-  isActive: boolean;
+  telegramId: number;
+  name: string;
+  username: string | null;
+  profileIcon: string | null;
+  coins: number;
+  bestScore: number;
+  revives: number;
+  isBanned: boolean;
+  createdAt: string | null;
+  runs: number;
+  lastRunAt: string | null;
 }
 
-export type CreateMapInput = Omit<GameMap, "id">;
-export type UpdateMapInput = Partial<CreateMapInput>;
+export interface PlayersPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  players: PlayerSummary[];
+}
 
-export interface Paint {
+export type UpgradeId = "turbo" | "magnet" | "slowmo" | "x2";
+export type PaymentStatus = "pending" | "paid" | "refunded";
+
+export interface Payment {
   id: number;
-  color: string | null;     // varchar(50), es. "#e63946" o nome/codice colore
-  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
-  unlockValue: number;      // int, default 0
-  isActive: boolean;        // default true
+  userId: number;
+  payload: string;
+  purpose: "item" | "revive";
+  itemId: string | null;
+  runId: string | null;
+  stars: number;
+  status: PaymentStatus;
+  telegramChargeId: string | null;
+  createdAt: string;
+  paidAt: string | null;
 }
 
-export type PaintResponse = Paint;
-export type CreatePaintInput = Omit<Paint, "id">;
-export type UpdatePaintInput = Partial<CreatePaintInput>;
-
-export interface Wheel {
-  id: number;
-  name: string;             // varchar(100), obbligatorio (min 1, max 100)
-  capacity: number;         // int, obbligatorio (vite extra fornite dalle ruote)
-  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
-  unlockValue: number;      // int, default 0
-  isActive: boolean;        // default true
+export interface PaymentRow extends Payment {
+  playerName: string;
+  itemName: string | null;
 }
 
-export type WheelResponse = Wheel;
-export type CreateWheelInput = Omit<Wheel, "id">;
-export type UpdateWheelInput = Partial<CreateWheelInput>;
-
-export interface Powerup {
-  id: number;
-  name: string;             // varchar(100), obbligatorio (min 1, max 100)
-  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
-  unlockValue: number;      // int, default 0
-  isActive: boolean;        // default true
+export interface PaymentsPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  payments: PaymentRow[];
 }
 
-export type PowerupResponse = Powerup;
-export type CreatePowerupInput = Omit<Powerup, "id">;
-export type UpdatePowerupInput = Partial<CreatePowerupInput>;
+export type RunStatus = "running" | "finished" | "expired";
+
+export interface PlayerDetail {
+  player: Omit<PlayerSummary, "runs" | "lastRunAt"> & {
+    displayName: string | null;
+    equipped: Record<string, string>;
+  };
+  owned: {
+    itemId: string;
+    name: string;
+    kind: ItemKind;
+    source: string;
+    acquiredAt: string;
+  }[];
+  upgrades: Record<UpgradeId, number>;
+  runs: {
+    id: string;
+    status: RunStatus;
+    score: number | null;
+    coins: number | null;
+    distance: number | null;
+    revived: boolean;
+    startedAt: string;
+    finishedAt: string | null;
+  }[];
+  payments: Payment[];
+  transactions: {
+    id: number;
+    amount: number;
+    reason: string;
+    createdAt: string | null;
+  }[];
+}
+
+export interface UpdatePlayerInput {
+  coins?: number;
+  revives?: number;
+  isBanned?: boolean;
+  displayName?: string;
+}
 
 export interface ApiErrorResponse {
   message?: string;
   error?: string;
   errors?: Record<string, string[]>;
 }
-

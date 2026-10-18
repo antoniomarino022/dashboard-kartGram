@@ -1,86 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CarFront,
-  CircleDot,
   LayoutDashboard,
   LogOut,
-  MapPin,
   Menu,
   Moon,
-  Palette,
+  Package,
   ShieldAlert,
+  Star,
   Sun,
   Users,
   X,
-  Zap,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import {
   authClient,
   useSession,
   type SessionUserWithRole,
 } from "@/lib/auth-client";
-import {
-  useCarsQuery,
-  useCharactersQuery,
-  useMapsQuery,
-  usePaintsQuery,
-  usePowerupsQuery,
-  useWheelsQuery,
-} from "@/hooks/use-catalog-queries";
+import { useItemsQuery, usePlayersQuery } from "@/hooks/use-admin-queries";
 import { TgAvatar } from "@/components/ui/tg-avatar";
 import { cn } from "@/lib/cn";
-import { useUiStore } from "@/stores/ui";
+import { TrackBackdrop } from "./track-backdrop";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 
 export const NAV_ITEMS = [
-  {
-    href: "/",
-    label: "Panoramica",
-    icon: LayoutDashboard,
-  },
-  {
-    key: "cars",
-    href: "/cars",
-    label: "Auto",
-    icon: CarFront,
-  },
-  {
-    key: "characters",
-    href: "/characters",
-    label: "Piloti",
-    icon: Users,
-  },
-  {
-    key: "maps",
-    href: "/maps",
-    label: "Mappe",
-    icon: MapPin,
-  },
-  {
-    key: "paints",
-    href: "/paints",
-    label: "Vernici",
-    icon: Palette,
-  },
-  {
-    key: "wheels",
-    href: "/wheels",
-    label: "Ruote",
-    icon: CircleDot,
-  },
-  {
-    key: "powerups",
-    href: "/powerups",
-    label: "Powerup",
-    icon: Zap,
-  },
+  { href: "/", label: "Panoramica", icon: LayoutDashboard },
+  { key: "items", href: "/items", label: "Catalogo", icon: Package },
+  { key: "players", href: "/players", label: "Giocatori", icon: Users },
+  { href: "/payments", label: "Pagamenti", icon: Star },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -91,22 +46,28 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const theme = useUiStore((s) => s.theme);
-  const toggleTheme = useUiStore((s) => s.toggleTheme);
-
-  const carsQuery = useCarsQuery();
-  const charactersQuery = useCharactersQuery();
-  const mapsQuery = useMapsQuery();
-  const paintsQuery = usePaintsQuery();
-  const wheelsQuery = useWheelsQuery();
-  const powerupsQuery = usePowerupsQuery();
+  const { resolvedTheme, setTheme } = useTheme();
+  // il tema si conosce solo nel browser: fino ad allora l'icona non dipende dal tema (niente mismatch di idratazione)
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const isDark = mounted && resolvedTheme === "dark";
+  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
   const isPublicPage = PUBLIC_PATHS.includes(pathname);
+  // conteggi per la sidebar: stesse query delle pagine, quindi già in cache
+  const canQuery =
+    !isPublicPage && (session?.user as SessionUserWithRole | undefined)?.role === "admin";
+  const itemsQuery = useItemsQuery(canQuery);
+  const playersQuery = usePlayersQuery("", 1, canQuery);
 
-  // Sync dark class
+  // il drawer mobile si chiude con Esc
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
+    if (!mobileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen]);
 
   // Auth redirect
   useEffect(() => {
@@ -137,13 +98,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const currentUser = session?.user as SessionUserWithRole | undefined;
 
-  const counts: Record<string, number> = {
-    cars: carsQuery.data?.length ?? 0,
-    characters: charactersQuery.data?.length ?? 0,
-    maps: mapsQuery.data?.length ?? 0,
-    paints: paintsQuery.data?.length ?? 0,
-    wheels: wheelsQuery.data?.length ?? 0,
-    powerups: powerupsQuery.data?.length ?? 0,
+  const counts: Record<string, number | undefined> = {
+    items: itemsQuery.data?.length,
+    players: playersQuery.data?.total,
   };
 
   return (
@@ -159,49 +116,42 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Clean Dashboard Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-tg-border bg-tg-surface transition-transform duration-200 md:static md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-tg-border bg-tg-surface transition-transform duration-200 md:static md:translate-x-0",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-tg-border px-5">
+        <div className="flex h-20 shrink-0 items-center justify-between px-5">
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2.5 font-bold tracking-tight text-tg-primary"
+            className="flex items-center gap-3 text-tg-primary"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-tg-accent text-white">
-              <CarFront className="h-4 w-4" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-tg-accent text-tg-on-accent shadow-card">
+              <CarFront className="h-5 w-5" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-extrabold leading-none">KartGram</span>
-              <span className="text-[10px] font-medium text-tg-muted">
-                Admin Dashboard
-              </span>
-            </div>
+            <span className="font-display text-2xl font-extrabold uppercase leading-none tracking-wide">KartGram</span>
           </Link>
 
           <button
             type="button"
             onClick={() => setMobileMenuOpen(false)}
-            className="rounded-lg p-1 text-tg-muted hover:bg-tg-secondary md:hidden"
+            aria-label="Chiudi menu"
+            className="rounded-lg p-2 text-tg-muted hover:bg-tg-secondary md:hidden"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation items */}
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-tg-muted">
-            Menu
-          </div>
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
               item.href === "/"
                 ? pathname === "/"
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const count = item.key ? counts[item.key] : null;
+            const count = item.key ? counts[item.key] : undefined;
 
             return (
               <Link
@@ -209,22 +159,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center justify-between rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+                  "flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-medium transition-colors",
                   isActive
-                    ? "bg-tg-accent text-white"
-                    : "text-tg-muted hover:bg-tg-secondary hover:text-tg-primary"
+                    ? "bg-tg-accent font-semibold text-tg-on-accent shadow-card"
+                    : "text-tg-muted hover:bg-tg-hover hover:text-tg-primary"
                 )}
               >
-                <div className="flex items-center gap-2.5">
-                  <Icon className="h-4 w-4 shrink-0" />
+                <div className="flex items-center gap-3">
+                  <Icon className="h-[18px] w-[18px] shrink-0" />
                   <span>{item.label}</span>
                 </div>
-                {count !== null && (
+                {count !== undefined && (
                   <span
                     className={cn(
-                      "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                      "min-w-7 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums",
                       isActive
-                        ? "bg-white/20 text-white"
+                        ? "bg-tg-on-accent/15 text-tg-on-accent"
                         : "bg-tg-secondary text-tg-muted"
                     )}
                   >
@@ -236,47 +186,40 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* User profile & Theme toggle footer */}
-        <div className="border-t border-tg-border p-3">
-          <div className="mb-2 flex items-center justify-between rounded-lg bg-tg-secondary p-2.5">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <TgAvatar
-                name={currentUser?.name || currentUser?.email || "Admin"}
-                seed={currentUser?.email || "admin"}
-                size="sm"
-              />
-              <div className="flex flex-col truncate">
-                <span className="truncate text-xs font-semibold text-tg-primary">
-                  {currentUser?.name || "Admin"}
-                </span>
-                <span className="truncate text-[10px] text-tg-muted">
-                  {currentUser?.email}
-                </span>
-              </div>
+        {/* Utente, tema e logout */}
+        <div className="space-y-2 border-t border-tg-border p-3">
+          <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
+            <TgAvatar
+              name={currentUser?.name || currentUser?.email || "Admin"}
+             
+              size="sm"
+            />
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-semibold text-tg-primary">
+                {currentUser?.name || "Admin"}
+              </span>
+              <span className="truncate text-xs text-tg-muted">{currentUser?.email}</span>
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={toggleTheme}
-              title={theme === "dark" ? "Tema chiaro" : "Tema scuro"}
-              className="rounded-md p-1.5 text-tg-muted hover:bg-tg-surface hover:text-tg-primary cursor-pointer"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-tg-border text-sm font-medium text-tg-muted transition-colors hover:bg-tg-hover hover:text-tg-primary cursor-pointer"
             >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4 text-amber-400" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <span>{isDark ? "Chiaro" : "Scuro"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-tg-border text-sm font-medium text-tg-muted transition-colors hover:border-tg-danger/40 hover:bg-tg-danger-soft hover:text-tg-danger cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Esci</span>
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-tg-border bg-tg-surface py-1.5 text-xs font-semibold text-tg-muted transition-colors hover:bg-tg-danger-soft hover:text-tg-danger cursor-pointer"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span>Esci</span>
-          </button>
         </div>
       </aside>
 
@@ -287,29 +230,31 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-1.5 text-tg-muted hover:bg-tg-secondary hover:text-tg-primary cursor-pointer"
+            aria-label="Apri menu"
+            className="rounded-lg p-2 text-tg-muted hover:bg-tg-secondary hover:text-tg-primary cursor-pointer"
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          <span className="text-sm font-bold text-tg-primary">KartGram Admin</span>
+          <span className="font-display text-xl font-extrabold uppercase tracking-wide text-tg-primary">KartGram</span>
 
           <button
             type="button"
             onClick={toggleTheme}
-            className="rounded-lg p-1.5 text-tg-muted hover:bg-tg-secondary hover:text-tg-primary cursor-pointer"
+            aria-label={isDark ? "Tema chiaro" : "Tema scuro"}
+            className="rounded-lg p-2 text-tg-muted hover:bg-tg-secondary hover:text-tg-primary cursor-pointer"
           >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4 text-amber-400" />
-            ) : (
-              <Moon className="h-4 w-4" />
-            )}
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
         </div>
 
         {/* Page Content */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {children}
+        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <TrackBackdrop />
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            {/* le pagine partono solo con sessione admin: niente richieste prima dell'auth */}
+            {currentUser?.role === "admin" ? children : <ShellSkeleton />}
+          </div>
         </main>
       </div>
 
@@ -319,22 +264,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         currentUser &&
         currentUser.role !== "admin" && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-xl border border-tg-border bg-tg-surface p-6 text-center shadow-xl">
+            <div className="w-full max-w-md rounded-xl border border-tg-border bg-tg-surface p-6 text-center shadow-elevated">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-tg-danger-soft text-tg-danger">
                 <ShieldAlert className="h-6 w-6" />
               </div>
               <h2 className="text-base font-bold text-tg-primary">
-                Accesso Riservato agli Amministratori
+                Accesso negato
               </h2>
-              <p className="mt-2 text-xs text-tg-muted">
-                Connesso come <strong>{currentUser.email}</strong>. Questo account
-                non dispone dei permessi di amministratore.
-              </p>
+              <p className="mt-2 text-sm text-tg-muted">{currentUser.email}</p>
               <div className="mt-5 flex justify-center">
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="rounded-lg bg-tg-danger px-4 py-2 text-xs font-semibold text-white hover:opacity-90 cursor-pointer"
+                  className="rounded-lg bg-tg-danger px-4 py-2 text-sm font-semibold text-tg-on-danger hover:opacity-90 cursor-pointer"
                 >
                   Disconnetti
                 </button>
@@ -342,6 +284,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
+    </div>
+  );
+}
+
+function ShellSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-6 py-6 lg:px-10 lg:py-8" aria-busy="true">
+      <div className="h-9 w-56 animate-pulse rounded-xl bg-tg-hover" />
+      <div className="h-64 animate-pulse rounded-2xl bg-tg-surface shadow-card" />
     </div>
   );
 }

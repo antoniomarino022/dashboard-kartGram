@@ -1,7 +1,8 @@
 import { createAuthClient } from "better-auth/react";
+import { API_URL } from "@/lib/api-url";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://kart-gram.vercel.app",
+  baseURL: API_URL,
   fetchOptions: {
     credentials: "include",
   },
