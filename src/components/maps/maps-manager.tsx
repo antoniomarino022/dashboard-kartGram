@@ -1,6 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Badge,
+  Button,
+  Caption,
+  Cell,
+  Chip,
+  IconButton,
+  Input,
+  Placeholder,
+  Section,
+  Select,
+  Spinner,
+  Subheadline,
+  Switch,
+  Title,
+} from "@telegram-apps/telegram-ui";
 import { parseApiError } from "@/services/apiClient";
 import {
   useCreateMapMutation,
@@ -9,16 +25,12 @@ import {
   useUpdateMapMutation,
 } from "@/hooks/use-catalog-queries";
 import { useCatalogFilters } from "@/hooks/use-catalog-filters";
-import {
-  UnlockType,
-  type CreateMapInput,
-  type GameMap,
-} from "@/types/api";
+import { UnlockType, type CreateMapInput, type GameMap } from "@/types/api";
 import { UNLOCK_TYPE_META } from "@/lib/utils";
 import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
 import { CatalogToolbar } from "@/components/ui/catalog-toolbar";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import { Flag, Loader2, MapPin, Pencil, Trash2, X } from "lucide-react";
+import { Flag, MapPin, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const INITIAL_MAP_FORM: CreateMapInput = {
@@ -121,7 +133,9 @@ export function MapsManager() {
       (!Number.isInteger(Number(formData.unlockValue)) ||
         Number(formData.unlockValue) < 0)
     ) {
-      errs.unlockValue = ["Il valore di sblocco deve essere un intero positivo."];
+      errs.unlockValue = [
+        "Il valore di sblocco deve essere un intero positivo.",
+      ];
     }
 
     setFieldErrors(errs);
@@ -181,14 +195,21 @@ export function MapsManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-          🗺 Gestione Circuiti / Mappe
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Gestisci le piste e le ambientazioni del gioco, i tipi di terreno e i
-          requisiti di sblocco
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <Title level="1" className="!text-2xl !font-bold !text-zinc-100">
+              🗺 Gestione Circuiti / Mappe
+            </Title>
+            <Badge type="number" mode="secondary">
+              {maps.length}
+            </Badge>
+          </div>
+          <Subheadline level="2" className="mt-1 !text-zinc-400">
+            Gestisci le piste e le ambientazioni del gioco, i tipi di terreno e
+            i requisiti di sblocco
+          </Subheadline>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -207,54 +228,55 @@ export function MapsManager() {
         filteredCount={filteredMaps.length}
       />
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              <tr>
-                <th className="px-4 py-3.5">ID</th>
-                <th className="px-4 py-3.5">Nome Circuito</th>
-                <th className="px-4 py-3.5">Ambientazione / Tipo</th>
-                <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
-                <th className="px-4 py-3.5">Stato</th>
-                <th className="px-4 py-3.5 text-right">Azioni</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/60">
-              {isLoading ? (
+      {/* Table inside Telegram UI Section */}
+      <Section
+        header="Elenco Circuiti & Ambientazioni"
+        className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50"
+      >
+        {isLoading ? (
+          <Placeholder
+            header="Caricamento circuiti..."
+            description="Recupero dati dal server in corso"
+          >
+            <Spinner size="l" />
+          </Placeholder>
+        ) : isError ? (
+          <Placeholder
+            header="Errore di caricamento"
+            description={parseApiError(error).message}
+            action={
+              <Button size="s" mode="bezeled" onClick={handleRefresh}>
+                Riprova
+              </Button>
+            }
+          />
+        ) : filteredMaps.length === 0 ? (
+          <Placeholder
+            header="Nessuna mappa trovata"
+            description="Non ci sono mappe corrispondenti ai filtri selezionati."
+            action={
+              <Button size="s" mode="bezeled" onClick={openCreateModal}>
+                Crea Nuova Mappa
+              </Button>
+            }
+          >
+            <Flag className="h-10 w-10 text-zinc-600" />
+          </Placeholder>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-zinc-400"
-                  >
-                    <div className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-orange-400" />
-                      Caricamento circuiti...
-                    </div>
-                  </td>
+                  <th className="px-4 py-3.5">ID</th>
+                  <th className="px-4 py-3.5">Nome Circuito</th>
+                  <th className="px-4 py-3.5">Ambientazione / Tipo</th>
+                  <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
+                  <th className="px-4 py-3.5">Stato</th>
+                  <th className="px-4 py-3.5 text-right">Azioni</th>
                 </tr>
-              ) : isError ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-red-400"
-                  >
-                    {parseApiError(error).message}
-                  </td>
-                </tr>
-              ) : filteredMaps.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-zinc-400"
-                  >
-                    <Flag className="mx-auto mb-2 h-8 w-8 text-zinc-600" />
-                    Nessuna mappa trovata con i filtri selezionati.
-                  </td>
-                </tr>
-              ) : (
-                filteredMaps.map((map) => (
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {filteredMaps.map((map) => (
                   <tr
                     key={map.id}
                     className="hover:bg-zinc-800/30 transition-colors"
@@ -267,10 +289,15 @@ export function MapsManager() {
                     </td>
                     <td className="px-4 py-3.5">
                       {map.mapType ? (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
-                          <MapPin className="h-3 w-3" />
+                        <Chip
+                          mode="outline"
+                          before={
+                            <MapPin className="h-3 w-3 text-emerald-400" />
+                          }
+                          className="!rounded-lg !py-0.5 !px-2.5 !border-emerald-500/30 !bg-emerald-500/10 !text-emerald-300 text-xs font-medium"
+                        >
                           {map.mapType}
-                        </span>
+                        </Chip>
                       ) : (
                         <span className="text-xs text-zinc-500">—</span>
                       )}
@@ -285,37 +312,39 @@ export function MapsManager() {
                       <StatusBadge isActive={map.isActive} />
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
-                        <button
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <Button
                           type="button"
+                          size="s"
+                          mode="bezeled"
                           onClick={() => openEditModal(map)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-800/70 px-2.5 py-1.5 text-xs font-medium text-zinc-200 hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-400 transition-colors cursor-pointer"
-                          title="Modifica mappa"
+                          before={<Pencil className="h-3.5 w-3.5" />}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
                           Modifica
-                        </button>
-                        <button
+                        </Button>
+                        <IconButton
                           type="button"
+                          size="s"
+                          mode="gray"
                           onClick={() => setDeletingMap(map)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-800/70 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer"
                           title="Elimina mappa"
+                          className="hover:!text-red-400"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          <Trash2 className="h-4 w-4" />
+                        </IconButton>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
 
-      {/* Create / Edit Modal */}
+      {/* Create / Edit Modal with Telegram UI Form Controls */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
           <div
             role="dialog"
             aria-modal="true"
@@ -323,59 +352,55 @@ export function MapsManager() {
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
               <div>
-                <h2 className="text-lg font-bold text-zinc-100">
+                <Title level="3" className="!text-lg !font-bold !text-zinc-100">
                   {editingMap
                     ? `Modifica Mappa #${editingMap.id}`
                     : "Nuova Mappa / Circuito"}
-                </h2>
-                <p className="text-xs text-zinc-400">
+                </Title>
+                <Caption level="1" className="!text-zinc-400">
                   Definisci nome, ambientazione e requisiti di sblocco del
                   circuito
-                </p>
+                </Caption>
               </div>
-              <button
+              <IconButton
                 type="button"
+                size="s"
+                mode="gray"
                 onClick={() => setIsFormOpen(false)}
                 disabled={isSaving}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </IconButton>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                  Nome Circuito / Mappa{" "}
-                  <span className="text-orange-400">*</span>
-                </label>
-                <input
-                  type="text"
+            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <Section
+                header="Dettagli Circuito"
+                className="overflow-hidden rounded-xl border border-zinc-800/80"
+              >
+                <Input
+                  header="Nome Circuito / Mappa *"
                   required
                   maxLength={100}
+                  status={fieldErrors.name ? "error" : "default"}
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="es. Neon Highway, Desert Oasis..."
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
                 {fieldErrors.name && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {fieldErrors.name.join(", ")}
-                  </p>
+                  <div className="px-5 pb-2">
+                    <Caption level="1" className="!text-red-400">
+                      {fieldErrors.name.join(", ")}
+                    </Caption>
+                  </div>
                 )}
-              </div>
 
-              {/* MapType */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                  Ambientazione / Tipo (mapType - opzionale)
-                </label>
-                <input
-                  type="text"
+                <Input
+                  header="Ambientazione / Tipo (mapType - opzionale)"
                   maxLength={50}
+                  status={fieldErrors.mapType ? "error" : "default"}
                   value={formData.mapType ?? ""}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -384,128 +409,87 @@ export function MapsManager() {
                     }))
                   }
                   placeholder="es. asphalt, desert, cyberpunk, snow..."
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
-                {fieldErrors.mapType && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {fieldErrors.mapType.join(", ")}
-                  </p>
-                )}
-              </div>
+              </Section>
 
-              {/* UnlockType & UnlockValue */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                    Metodo di Sblocco <span className="text-orange-400">*</span>
-                  </label>
-                  <select
-                    value={formData.unlockType}
-                    onChange={(e) =>
-                      handleUnlockTypeChange(e.target.value as UnlockType)
-                    }
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                  >
-                    {Object.values(UnlockType).map((type) => (
-                      <option key={type} value={type}>
-                        {UNLOCK_TYPE_META[type].label}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.unlockType && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {fieldErrors.unlockType.join(", ")}
-                    </p>
-                  )}
-                </div>
+              <Section
+                header="Sblocco & Stato"
+                className="overflow-hidden rounded-xl border border-zinc-800/80"
+              >
+                <Select
+                  header="Metodo di Sblocco *"
+                  status={fieldErrors.unlockType ? "error" : "default"}
+                  value={formData.unlockType}
+                  onChange={(e) =>
+                    handleUnlockTypeChange(e.target.value as UnlockType)
+                  }
+                >
+                  {Object.values(UnlockType).map((type) => (
+                    <option key={type} value={type}>
+                      {UNLOCK_TYPE_META[type].label}
+                    </option>
+                  ))}
+                </Select>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                    Valore / Costo Sblocco
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    disabled={formData.unlockType === UnlockType.FREE}
-                    value={
-                      formData.unlockType === UnlockType.FREE
-                        ? 0
-                        : formData.unlockValue
-                    }
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        unlockValue: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-zinc-900 disabled:text-zinc-500"
-                  />
-                  {formData.unlockType === UnlockType.FREE && (
-                    <p className="mt-1 text-[11px] text-zinc-500">
-                      Impostato automaticamente a 0 per sblocco FREE.
-                    </p>
-                  )}
-                  {fieldErrors.unlockValue && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {fieldErrors.unlockValue.join(", ")}
-                    </p>
-                  )}
-                </div>
-              </div>
+                <Input
+                  header="Valore / Costo Sblocco"
+                  type="number"
+                  min={0}
+                  step={1}
+                  status={fieldErrors.unlockValue ? "error" : "default"}
+                  disabled={formData.unlockType === UnlockType.FREE}
+                  value={
+                    formData.unlockType === UnlockType.FREE
+                      ? 0
+                      : formData.unlockValue
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      unlockValue: Number(e.target.value),
+                    }))
+                  }
+                />
 
-              {/* isActive Switch */}
-              <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3">
-                <div>
-                  <span className="block text-sm font-medium text-zinc-200">
-                    Stato Visibilità (isActive)
-                  </span>
-                  <span className="text-xs text-zinc-400">
-                    Rendi il circuito giocabile nell&apos;app
-                  </span>
-                </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        isActive: e.target.checked,
-                      }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="h-6 w-11 rounded-full bg-zinc-800 transition-colors peer-checked:bg-emerald-500 after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                </label>
-              </div>
+                <Cell
+                  Component="label"
+                  subtitle="Rendi il circuito giocabile nell'app"
+                  after={
+                    <Switch
+                      checked={formData.isActive}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                >
+                  Stato Visibilità (isActive)
+                </Cell>
+              </Section>
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-                <button
+                <Button
                   type="button"
+                  size="m"
+                  mode="gray"
                   onClick={() => setIsFormOpen(false)}
                   disabled={isSaving}
-                  className="rounded-xl border border-zinc-700 bg-zinc-800/70 px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-800 transition-colors"
                 >
                   Annulla
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="m"
+                  mode="filled"
+                  loading={isSaving}
                   disabled={isSaving}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 hover:from-orange-400 hover:to-amber-400 transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Salvataggio...
-                    </>
-                  ) : editingMap ? (
-                    "Salva Modifiche"
-                  ) : (
-                    "Crea Mappa"
-                  )}
-                </button>
+                  {editingMap ? "Salva Modifiche" : "Crea Mappa"}
+                </Button>
               </div>
             </form>
           </div>

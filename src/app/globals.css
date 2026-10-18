@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09090b;
+  --foreground: #f4f4f5;
+
+  /* Telegram UI dark theme customization for Kart-Gram Admin */
+  --tg-theme-bg-color: #18181b;
+  --tg-theme-secondary-bg-color: #09090b;
+  --tg-theme-header-bg-color: #18181b;
+  --tg-theme-section-bg-color: #18181b;
+  --tg-theme-section-header-text-color: #a1a1aa;
+  --tg-theme-text-color: #f4f4f5;
+  --tg-theme-hint-color: #a1a1aa;
+  --tg-theme-subtitle-text-color: #a1a1aa;
+  --tg-theme-link-color: #fb923c;
+  --tg-theme-button-color: #f97316;
+  --tg-theme-button-text-color: #09090b;
+  --tg-theme-accent-text-color: #fb923c;
+  --tg-theme-destructive-text-color: #f87171;
 }
 
 @theme inline {
@@ -12,15 +27,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
+
+/* Smooth integration between Telegram UI inputs/selects and dark admin cards */
+select option {
+  background-color: #18181b;
+  color: #f4f4f5;
+}
+

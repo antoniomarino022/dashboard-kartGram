@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppRoot } from "@telegram-apps/telegram-ui";
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -18,6 +19,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <AppRoot
+        appearance="dark"
+        platform="base"
+        className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100"
+      >
+        {children}
+      </AppRoot>
+    </QueryClientProvider>
   );
 }
+

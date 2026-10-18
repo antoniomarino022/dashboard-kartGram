@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Banner,
+  Button,
+  Caption,
+  Chip,
+  Input,
+  Section,
+  Subheadline,
+  Title,
+} from "@telegram-apps/telegram-ui";
+import {
   authClient,
   useSession,
   type SessionUserWithRole,
@@ -12,7 +22,6 @@ import {
   AlertCircle,
   CheckCircle2,
   KeyRound,
-  Loader2,
   Mail,
   ShieldCheck,
   User,
@@ -116,178 +125,140 @@ export function RegisterForm() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-2xl shadow-xl shadow-orange-500/20">
             🏎
           </div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-0.5 text-xs font-semibold text-orange-400">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Better Auth Admin Portal
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+          <Chip
+            mode="outline"
+            before={<ShieldCheck className="h-3.5 w-3.5 text-orange-400" />}
+            className="!rounded-full !border-orange-500/30 !bg-orange-500/10 !text-orange-400 text-xs font-semibold"
+          >
+            Better Auth &bull; Telegram UI Admin
+          </Chip>
+          <Title level="1" className="!text-2xl !font-bold !text-zinc-100">
             Registrazione Admin
-          </h1>
-          <p className="text-sm text-zinc-400">
+          </Title>
+          <Subheadline level="2" className="!text-zinc-400">
             Crea un nuovo account per accedere alla Dashboard di Kart-Gram
-          </p>
+          </Subheadline>
         </div>
 
         {/* Register Card */}
-        <div className="rounded-2xl border border-zinc-800/90 bg-zinc-900/80 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        <div className="rounded-2xl border border-zinc-800/90 bg-zinc-900/80 p-5 sm:p-6 shadow-2xl backdrop-blur-xl space-y-4">
           {errorMessage && (
-            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs text-red-300">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
+            <Section className="overflow-hidden rounded-xl border border-red-500/30 bg-red-500/5">
+              <Banner
+                type="inline"
+                before={<AlertCircle className="h-5 w-5 text-red-400" />}
+                header="Errore di registrazione"
+                description={errorMessage}
+              />
+            </Section>
           )}
 
           {pendingAdminNotice ? (
             <div className="space-y-5">
-              <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-300 leading-relaxed">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-emerald-200">
-                    Account creato con successo!
-                  </p>
-                  <p>
-                    L&apos;account per <strong>{email}</strong> è stato
-                    registrato. Assicurati che il tuo utente abbia il ruolo{" "}
-                    <code className="rounded bg-emerald-950/80 px-1.5 py-0.5 font-mono text-emerald-300">
-                      admin
-                    </code>{" "}
-                    nel backend per poter accedere alla dashboard.
-                  </p>
-                </div>
-              </div>
+              <Section className="overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                <Banner
+                  type="inline"
+                  before={<CheckCircle2 className="h-5 w-5 text-emerald-400" />}
+                  header="Account creato con successo!"
+                  subheader={`Email registrata: ${email}`}
+                  description="Assicurati che il tuo utente abbia il ruolo 'admin' nel backend per poter accedere alla dashboard."
+                />
+              </Section>
 
-              <Link
-                href="/login"
-                className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 text-sm font-bold text-zinc-950 shadow-lg shadow-orange-500/20 hover:from-orange-400 hover:to-amber-400 transition-all"
-              >
-                Vai alla pagina di Login
+              <Link href="/login" className="block no-underline">
+                <Button size="l" mode="filled" stretched>
+                  Vai alla pagina di Login
+                </Button>
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="name"
-                  className="block text-xs font-semibold uppercase tracking-wider text-zinc-400"
-                >
-                  Nome Completo
-                </label>
-                <div className="relative">
-                  <User className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={isSubmitting}
-                    placeholder="Admin Kart"
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 py-2.5 pr-4 pl-10 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="email"
-                  className="block text-xs font-semibold uppercase tracking-wider text-zinc-400"
-                >
-                  Email Amministratore
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    placeholder="admin@kartgram.com"
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 py-2.5 pr-4 pl-10 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-xs font-semibold uppercase tracking-wider text-zinc-400"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    placeholder="Minimo 8 caratteri"
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 py-2.5 pr-4 pl-10 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-xs font-semibold uppercase tracking-wider text-zinc-400"
-                >
-                  Conferma Password
-                </label>
-                <div className="relative">
-                  <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    placeholder="Ripeti la password"
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 py-2.5 pr-4 pl-10 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-2.5 text-sm font-bold text-zinc-950 shadow-lg shadow-orange-500/20 hover:from-orange-400 hover:to-amber-400 transition-all disabled:opacity-50 cursor-pointer"
+              <Section
+                header="Dati Nuovo Amministratore"
+                className="overflow-hidden rounded-xl border border-zinc-800/80"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Registrazione in corso...
-                  </>
-                ) : (
-                  "Crea Account Admin"
-                )}
-              </button>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  header="Nome Completo"
+                  autoComplete="name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="Admin Kart"
+                  before={<User className="h-4 w-4 text-zinc-400" />}
+                />
+
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  header="Email Amministratore"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="admin@kartgram.com"
+                  before={<Mail className="h-4 w-4 text-zinc-400" />}
+                />
+
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  header="Password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="Minimo 8 caratteri"
+                  before={<KeyRound className="h-4 w-4 text-zinc-400" />}
+                />
+
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  header="Conferma Password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  placeholder="Ripeti la password"
+                  before={<KeyRound className="h-4 w-4 text-zinc-400" />}
+                />
+              </Section>
+
+              <Button
+                type="submit"
+                size="l"
+                mode="filled"
+                stretched
+                loading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                Crea Account Admin
+              </Button>
             </form>
           )}
 
-          <div className="mt-6 border-t border-zinc-800/80 pt-4 text-center text-xs text-zinc-400">
-            Hai già un account amministratore?{" "}
-            <Link
-              href="/login"
-              className="font-semibold text-orange-400 hover:text-orange-300 underline underline-offset-4"
-            >
-              Accedi qui
-            </Link>
+          <div className="border-t border-zinc-800/80 pt-4 text-center">
+            <Caption level="1" className="!text-zinc-400">
+              Hai già un account amministratore?{" "}
+              <Link
+                href="/login"
+                className="font-semibold text-orange-400 hover:text-orange-300 underline underline-offset-4"
+              >
+                Accedi qui
+              </Link>
+            </Caption>
           </div>
         </div>
       </div>

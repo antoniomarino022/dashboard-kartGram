@@ -6,10 +6,19 @@ import type {
   CreateCarInput,
   CreateCharacterInput,
   CreateMapInput,
+  CreatePaintInput,
+  CreatePowerupInput,
+  CreateWheelInput,
   GameMap,
+  Paint,
+  Powerup,
   UpdateCarInput,
   UpdateCharacterInput,
   UpdateMapInput,
+  UpdatePaintInput,
+  UpdatePowerupInput,
+  UpdateWheelInput,
+  Wheel,
 } from "@/types/api";
 
 export const apiClient = axios.create({
@@ -47,7 +56,7 @@ export function parseApiError(error: unknown): ParsedApiError {
         .join(" | ");
       return {
         status: 400,
-        message: messages || data.message || "Errore di validazione dei dati.",
+        message: messages || data.message || data.error || "Errore di validazione dei dati.",
         fieldErrors: data.errors,
         isForbidden: false,
       };
@@ -57,6 +66,7 @@ export function parseApiError(error: unknown): ParsedApiError {
       status,
       message:
         data?.message ||
+        data?.error ||
         axiosErr.message ||
         "Si è verificato un errore durante la comunicazione con il server.",
       fieldErrors: data?.errors,
@@ -144,3 +154,70 @@ export const mapsService = {
     await apiClient.delete(`/maps/${id}`);
   },
 };
+
+export const paintsService = {
+  getAll: async (): Promise<Paint[]> => {
+    const { data } = await apiClient.get<Paint[]>("/paints");
+    return data;
+  },
+  getById: async (id: number): Promise<Paint> => {
+    const { data } = await apiClient.get<Paint>(`/paints/${id}`);
+    return data;
+  },
+  create: async (payload: CreatePaintInput): Promise<Paint> => {
+    const { data } = await apiClient.post<Paint>("/paints", payload);
+    return data;
+  },
+  update: async (id: number, payload: UpdatePaintInput): Promise<Paint> => {
+    const { data } = await apiClient.put<Paint>(`/paints/${id}`, payload);
+    return data;
+  },
+  remove: async (id: number): Promise<void> => {
+    await apiClient.delete(`/paints/${id}`);
+  },
+};
+
+export const wheelsService = {
+  getAll: async (): Promise<Wheel[]> => {
+    const { data } = await apiClient.get<Wheel[]>("/wheels");
+    return data;
+  },
+  getById: async (id: number): Promise<Wheel> => {
+    const { data } = await apiClient.get<Wheel>(`/wheels/${id}`);
+    return data;
+  },
+  create: async (payload: CreateWheelInput): Promise<Wheel> => {
+    const { data } = await apiClient.post<Wheel>("/wheels", payload);
+    return data;
+  },
+  update: async (id: number, payload: UpdateWheelInput): Promise<Wheel> => {
+    const { data } = await apiClient.put<Wheel>(`/wheels/${id}`, payload);
+    return data;
+  },
+  remove: async (id: number): Promise<void> => {
+    await apiClient.delete(`/wheels/${id}`);
+  },
+};
+
+export const powerupsService = {
+  getAll: async (): Promise<Powerup[]> => {
+    const { data } = await apiClient.get<Powerup[]>("/powerups");
+    return data;
+  },
+  getById: async (id: number): Promise<Powerup> => {
+    const { data } = await apiClient.get<Powerup>(`/powerups/${id}`);
+    return data;
+  },
+  create: async (payload: CreatePowerupInput): Promise<Powerup> => {
+    const { data } = await apiClient.post<Powerup>("/powerups", payload);
+    return data;
+  },
+  update: async (id: number, payload: UpdatePowerupInput): Promise<Powerup> => {
+    const { data } = await apiClient.put<Powerup>(`/powerups/${id}`, payload);
+    return data;
+  },
+  remove: async (id: number): Promise<void> => {
+    await apiClient.delete(`/powerups/${id}`);
+  },
+};
+

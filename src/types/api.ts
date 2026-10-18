@@ -45,7 +45,46 @@ export interface GameMap {
 export type CreateMapInput = Omit<GameMap, "id">;
 export type UpdateMapInput = Partial<CreateMapInput>;
 
+export interface Paint {
+  id: number;
+  color: string | null;     // varchar(50), es. "#e63946" o nome/codice colore
+  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
+  unlockValue: number;      // int, default 0
+  isActive: boolean;        // default true
+}
+
+export type PaintResponse = Paint;
+export type CreatePaintInput = Omit<Paint, "id">;
+export type UpdatePaintInput = Partial<CreatePaintInput>;
+
+export interface Wheel {
+  id: number;
+  name: string;             // varchar(100), obbligatorio (min 1, max 100)
+  capacity: number;         // int, obbligatorio (vite extra fornite dalle ruote)
+  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
+  unlockValue: number;      // int, default 0
+  isActive: boolean;        // default true
+}
+
+export type WheelResponse = Wheel;
+export type CreateWheelInput = Omit<Wheel, "id">;
+export type UpdateWheelInput = Partial<CreateWheelInput>;
+
+export interface Powerup {
+  id: number;
+  name: string;             // varchar(100), obbligatorio (min 1, max 100)
+  unlockType: UnlockType;   // "FREE" | "COINS" | "STARS" | "SHARES" | "ADS"
+  unlockValue: number;      // int, default 0
+  isActive: boolean;        // default true
+}
+
+export type PowerupResponse = Powerup;
+export type CreatePowerupInput = Omit<Powerup, "id">;
+export type UpdatePowerupInput = Partial<CreatePowerupInput>;
+
 export interface ApiErrorResponse {
   message?: string;
+  error?: string;
   errors?: Record<string, string[]>;
 }
+

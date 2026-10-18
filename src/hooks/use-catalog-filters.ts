@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import type { UnlockType } from "@/types/api";
 
 export interface FilterableCatalogItem {
-  name: string;
+  name?: string;
+  color?: string | null;
   unlockType: UnlockType;
   isActive: boolean;
 }
@@ -17,7 +18,9 @@ export function useCatalogFilters<T extends FilterableCatalogItem>(items: T[]) {
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
-      const matchesName = item.name.toLowerCase().includes(normalizedSearch);
+      const searchableValue = (item.name ?? item.color ?? "").toLowerCase();
+      const matchesName =
+        normalizedSearch === "" || searchableValue.includes(normalizedSearch);
       const matchesUnlock =
         unlockFilter === "ALL" || item.unlockType === unlockFilter;
       const matchesActive = !onlyActive || item.isActive;
@@ -35,3 +38,4 @@ export function useCatalogFilters<T extends FilterableCatalogItem>(items: T[]) {
     filteredItems,
   };
 }
+

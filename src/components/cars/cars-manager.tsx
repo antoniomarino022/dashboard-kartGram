@@ -1,6 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Badge,
+  Button,
+  Caption,
+  Cell,
+  Chip,
+  IconButton,
+  Input,
+  Placeholder,
+  Section,
+  Select,
+  Spinner,
+  Subheadline,
+  Switch,
+  Title,
+} from "@telegram-apps/telegram-ui";
 import { parseApiError } from "@/services/apiClient";
 import {
   useCarsQuery,
@@ -14,15 +30,7 @@ import { UNLOCK_TYPE_META } from "@/lib/utils";
 import { StatusBadge, UnlockTypeBadge } from "@/components/ui/badges";
 import { CatalogToolbar } from "@/components/ui/catalog-toolbar";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import {
-  CarFront,
-  Gauge,
-  Heart,
-  Loader2,
-  Pencil,
-  Trash2,
-  X,
-} from "lucide-react";
+import { CarFront, Gauge, Heart, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const INITIAL_CAR_FORM: CreateCarInput = {
@@ -145,7 +153,9 @@ export function CarsManager() {
       (!Number.isInteger(Number(formData.unlockValue)) ||
         Number(formData.unlockValue) < 0)
     ) {
-      errs.unlockValue = ["Il valore di sblocco deve essere un intero positivo."];
+      errs.unlockValue = [
+        "Il valore di sblocco deve essere un intero positivo.",
+      ];
     }
 
     setFieldErrors(errs);
@@ -207,14 +217,21 @@ export function CarsManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-          🏎 Gestione Auto
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Gestisci il parco auto da corsa, le statistiche di velocità, vite base
-          e requisiti di sblocco
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <Title level="1" className="!text-2xl !font-bold !text-zinc-100">
+              🏎 Gestione Auto
+            </Title>
+            <Badge type="number" mode="secondary">
+              {cars.length}
+            </Badge>
+          </div>
+          <Subheadline level="2" className="mt-1 !text-zinc-400">
+            Gestisci il parco auto da corsa, le statistiche di velocità, vite
+            base e requisiti di sblocco
+          </Subheadline>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -233,56 +250,57 @@ export function CarsManager() {
         filteredCount={filteredCars.length}
       />
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              <tr>
-                <th className="px-4 py-3.5">ID</th>
-                <th className="px-4 py-3.5">Nome Auto</th>
-                <th className="px-4 py-3.5">Categoria</th>
-                <th className="px-4 py-3.5">Velocità</th>
-                <th className="px-4 py-3.5">Vite Base</th>
-                <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
-                <th className="px-4 py-3.5">Stato</th>
-                <th className="px-4 py-3.5 text-right">Azioni</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/60">
-              {isLoading ? (
+      {/* Table inside Telegram UI Section */}
+      <Section
+        header="Catalogo Parco Auto"
+        className="overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-900/50"
+      >
+        {isLoading ? (
+          <Placeholder
+            header="Caricamento parco auto..."
+            description="Recupero dati dal server in corso"
+          >
+            <Spinner size="l" />
+          </Placeholder>
+        ) : isError ? (
+          <Placeholder
+            header="Errore di caricamento"
+            description={parseApiError(error).message}
+            action={
+              <Button size="s" mode="bezeled" onClick={handleRefresh}>
+                Riprova
+              </Button>
+            }
+          />
+        ) : filteredCars.length === 0 ? (
+          <Placeholder
+            header="Nessuna auto trovata"
+            description="Non ci sono auto corrispondenti ai filtri selezionati."
+            action={
+              <Button size="s" mode="bezeled" onClick={openCreateModal}>
+                Crea Nuova Auto
+              </Button>
+            }
+          >
+            <CarFront className="h-10 w-10 text-zinc-600" />
+          </Placeholder>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-800 bg-zinc-950/70 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-12 text-center text-zinc-400"
-                  >
-                    <div className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-orange-400" />
-                      Caricamento parco auto...
-                    </div>
-                  </td>
+                  <th className="px-4 py-3.5">ID</th>
+                  <th className="px-4 py-3.5">Nome Auto</th>
+                  <th className="px-4 py-3.5">Categoria</th>
+                  <th className="px-4 py-3.5">Velocità</th>
+                  <th className="px-4 py-3.5">Vite Base</th>
+                  <th className="px-4 py-3.5">Sblocco &amp; Costo</th>
+                  <th className="px-4 py-3.5">Stato</th>
+                  <th className="px-4 py-3.5 text-right">Azioni</th>
                 </tr>
-              ) : isError ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-12 text-center text-red-400"
-                  >
-                    {parseApiError(error).message}
-                  </td>
-                </tr>
-              ) : filteredCars.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-12 text-center text-zinc-400"
-                  >
-                    <CarFront className="mx-auto mb-2 h-8 w-8 text-zinc-600" />
-                    Nessuna auto trovata con i filtri selezionati.
-                  </td>
-                </tr>
-              ) : (
-                filteredCars.map((car) => (
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {filteredCars.map((car) => (
                   <tr
                     key={car.id}
                     className="hover:bg-zinc-800/30 transition-colors"
@@ -295,9 +313,12 @@ export function CarsManager() {
                     </td>
                     <td className="px-4 py-3.5">
                       {car.carType ? (
-                        <span className="inline-flex items-center rounded-md border border-zinc-700 bg-zinc-800/80 px-2 py-0.5 text-xs font-medium text-zinc-300">
+                        <Chip
+                          mode="mono"
+                          className="!rounded-md !py-0.5 !px-2 text-xs font-medium"
+                        >
                           {car.carType}
-                        </span>
+                        </Chip>
                       ) : (
                         <span className="text-xs text-zinc-500">—</span>
                       )}
@@ -324,37 +345,39 @@ export function CarsManager() {
                       <StatusBadge isActive={car.isActive} />
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
-                        <button
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <Button
                           type="button"
+                          size="s"
+                          mode="bezeled"
                           onClick={() => openEditModal(car)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-800/70 px-2.5 py-1.5 text-xs font-medium text-zinc-200 hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-400 transition-colors cursor-pointer"
-                          title="Modifica auto"
+                          before={<Pencil className="h-3.5 w-3.5" />}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
                           Modifica
-                        </button>
-                        <button
+                        </Button>
+                        <IconButton
                           type="button"
+                          size="s"
+                          mode="gray"
                           onClick={() => setDeletingCar(car)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-800/70 px-2.5 py-1.5 text-xs font-medium text-zinc-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer"
                           title="Elimina auto"
+                          className="hover:!text-red-400"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          <Trash2 className="h-4 w-4" />
+                        </IconButton>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
 
-      {/* Create / Edit Modal */}
+      {/* Create / Edit Modal with Telegram UI Form Controls */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
           <div
             role="dialog"
             aria-modal="true"
@@ -362,57 +385,54 @@ export function CarsManager() {
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
               <div>
-                <h2 className="text-lg font-bold text-zinc-100">
+                <Title level="3" className="!text-lg !font-bold !text-zinc-100">
                   {editingCar
                     ? `Modifica Auto #${editingCar.id}`
                     : "Nuova Auto da Corsa"}
-                </h2>
-                <p className="text-xs text-zinc-400">
+                </Title>
+                <Caption level="1" className="!text-zinc-400">
                   Compila i parametri tecnici e di sblocco dell&apos;auto
-                </p>
+                </Caption>
               </div>
-              <button
+              <IconButton
                 type="button"
+                size="s"
+                mode="gray"
                 onClick={() => setIsFormOpen(false)}
                 disabled={isSaving}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </IconButton>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-              {/* Name */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                  Nome Auto <span className="text-orange-400">*</span>
-                </label>
-                <input
-                  type="text"
+            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <Section
+                header="Specifiche Auto"
+                className="overflow-hidden rounded-xl border border-zinc-800/80"
+              >
+                <Input
+                  header="Nome Auto *"
                   required
                   maxLength={100}
+                  status={fieldErrors.name ? "error" : "default"}
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="es. Speedy Kart, Rocket Flame..."
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
                 {fieldErrors.name && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {fieldErrors.name.join(", ")}
-                  </p>
+                  <div className="px-5 pb-2">
+                    <Caption level="1" className="!text-red-400">
+                      {fieldErrors.name.join(", ")}
+                    </Caption>
+                  </div>
                 )}
-              </div>
 
-              {/* CarType */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                  Categoria / Tipo (carType - opzionale)
-                </label>
-                <input
-                  type="text"
+                <Input
+                  header="Categoria / Tipo (carType - opzionale)"
                   maxLength={50}
+                  status={fieldErrors.carType ? "error" : "default"}
                   value={formData.carType ?? ""}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -421,26 +441,16 @@ export function CarsManager() {
                     }))
                   }
                   placeholder="es. speed, drift, acceleration, balanced..."
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
-                {fieldErrors.carType && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {fieldErrors.carType.join(", ")}
-                  </p>
-                )}
-              </div>
 
-              {/* Speed & BaseLives */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                    Velocità (speed) <span className="text-orange-400">*</span>
-                  </label>
-                  <input
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <Input
+                    header="Velocità (speed) *"
                     type="number"
                     required
                     min={1}
                     step={1}
+                    status={fieldErrors.speed ? "error" : "default"}
                     value={formData.speed}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -448,24 +458,14 @@ export function CarsManager() {
                         speed: Number(e.target.value),
                       }))
                     }
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
-                  {fieldErrors.speed && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {fieldErrors.speed.join(", ")}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                    Vite Base (baseLives)
-                  </label>
-                  <input
+                  <Input
+                    header="Vite Base (baseLives) *"
                     type="number"
                     required
                     min={1}
                     step={1}
+                    status={fieldErrors.baseLives ? "error" : "default"}
                     value={formData.baseLives}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -473,129 +473,88 @@ export function CarsManager() {
                         baseLives: Number(e.target.value),
                       }))
                     }
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
-                  {fieldErrors.baseLives && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {fieldErrors.baseLives.join(", ")}
-                    </p>
-                  )}
                 </div>
-              </div>
+              </Section>
 
-              {/* UnlockType & UnlockValue */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                    Metodo di Sblocco <span className="text-orange-400">*</span>
-                  </label>
-                  <select
-                    value={formData.unlockType}
-                    onChange={(e) =>
-                      handleUnlockTypeChange(e.target.value as UnlockType)
-                    }
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                  >
-                    {Object.values(UnlockType).map((type) => (
-                      <option key={type} value={type}>
-                        {UNLOCK_TYPE_META[type].label}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.unlockType && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {fieldErrors.unlockType.join(", ")}
-                    </p>
-                  )}
-                </div>
+              <Section
+                header="Sblocco & Stato"
+                className="overflow-hidden rounded-xl border border-zinc-800/80"
+              >
+                <Select
+                  header="Metodo di Sblocco *"
+                  status={fieldErrors.unlockType ? "error" : "default"}
+                  value={formData.unlockType}
+                  onChange={(e) =>
+                    handleUnlockTypeChange(e.target.value as UnlockType)
+                  }
+                >
+                  {Object.values(UnlockType).map((type) => (
+                    <option key={type} value={type}>
+                      {UNLOCK_TYPE_META[type].label}
+                    </option>
+                  ))}
+                </Select>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                    Valore / Costo Sblocco
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    disabled={formData.unlockType === UnlockType.FREE}
-                    value={
-                      formData.unlockType === UnlockType.FREE
-                        ? 0
-                        : formData.unlockValue
-                    }
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        unlockValue: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:cursor-not-allowed disabled:bg-zinc-900 disabled:text-zinc-500"
-                  />
-                  {formData.unlockType === UnlockType.FREE && (
-                    <p className="mt-1 text-[11px] text-zinc-500">
-                      Impostato automaticamente a 0 per sblocco FREE.
-                    </p>
-                  )}
-                  {fieldErrors.unlockValue && (
-                    <p className="mt-1 text-xs text-red-400">
-                      {fieldErrors.unlockValue.join(", ")}
-                    </p>
-                  )}
-                </div>
-              </div>
+                <Input
+                  header="Valore / Costo Sblocco"
+                  type="number"
+                  min={0}
+                  step={1}
+                  status={fieldErrors.unlockValue ? "error" : "default"}
+                  disabled={formData.unlockType === UnlockType.FREE}
+                  value={
+                    formData.unlockType === UnlockType.FREE
+                      ? 0
+                      : formData.unlockValue
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      unlockValue: Number(e.target.value),
+                    }))
+                  }
+                />
 
-              {/* isActive Switch */}
-              <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/60 px-4 py-3">
-                <div>
-                  <span className="block text-sm font-medium text-zinc-200">
-                    Stato Visibilità (isActive)
-                  </span>
-                  <span className="text-xs text-zinc-400">
-                    Rendi l&apos;auto disponibile nel catalogo di gioco
-                  </span>
-                </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        isActive: e.target.checked,
-                      }))
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="h-6 w-11 rounded-full bg-zinc-800 transition-colors peer-checked:bg-emerald-500 after:absolute after:top-0.5 after:left-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-                </label>
-              </div>
+                <Cell
+                  Component="label"
+                  subtitle="Rendi l'auto disponibile nel catalogo di gioco"
+                  after={
+                    <Switch
+                      checked={formData.isActive}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isActive: e.target.checked,
+                        }))
+                      }
+                    />
+                  }
+                >
+                  Stato Visibilità (isActive)
+                </Cell>
+              </Section>
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
-                <button
+                <Button
                   type="button"
+                  size="m"
+                  mode="gray"
                   onClick={() => setIsFormOpen(false)}
                   disabled={isSaving}
-                  className="rounded-xl border border-zinc-700 bg-zinc-800/70 px-4 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-800 transition-colors"
                 >
                   Annulla
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="m"
+                  mode="filled"
+                  loading={isSaving}
                   disabled={isSaving}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 hover:from-orange-400 hover:to-amber-400 transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Salvataggio...
-                    </>
-                  ) : editingCar ? (
-                    "Salva Modifiche"
-                  ) : (
-                    "Crea Auto"
-                  )}
-                </button>
+                  {editingCar ? "Salva Modifiche" : "Crea Auto"}
+                </Button>
               </div>
             </form>
           </div>

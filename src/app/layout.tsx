@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { QueryProvider } from "@/providers/query-provider";
+import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./globals.css";
 
 const geistSans = Geist({
