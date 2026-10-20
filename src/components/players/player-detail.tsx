@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Ban, Gift, ShieldCheck, Trash2 } from "lucide-react";
@@ -190,6 +190,7 @@ function PlayerBody({ id, detail }: { id: number; detail: PlayerDetail }) {
           bestScore={player.bestScore}
         />
         <PlayerUpgradesCard
+          key={`${id}-${JSON.stringify(upgrades)}`}
           id={id}
           upgrades={upgrades}
           equipped={player.equipped}
@@ -539,10 +540,6 @@ function PlayerUpgradesCard({
 }) {
   const mutation = useUpdatePlayerUpgradesMutation(id);
   const [state, setState] = useState<Record<string, number>>(() => ({ ...upgrades }));
-
-  useEffect(() => {
-    setState({ ...upgrades });
-  }, [upgrades]);
 
   const isDirty = useMemo(() => {
     return UPGRADES.some((u) => (state[u.id] ?? 0) !== (upgrades[u.id] ?? 0));
