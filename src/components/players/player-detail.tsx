@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Ban, Gift, ShieldCheck, Trash2 } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   usePlayerQuery,
   useRevokeItemMutation,
   useUpdatePlayerMutation,
+  useUpdatePlayerUpgradesMutation,
 } from "@/hooks/use-admin-queries";
 import { parseApiError } from "@/services/apiClient";
 import { formatDate, formatDateTime, formatNumber, formatRelative } from "@/lib/format";
@@ -53,11 +54,12 @@ const REASON_LABEL: Record<string, string> = {
   REVIVE: "Revive",
 };
 
-const UPGRADES: { id: UpgradeId; label: string }[] = [
-  { id: "turbo", label: "Turbo" },
-  { id: "magnet", label: "Magnete" },
-  { id: "slowmo", label: "Rallenty" },
-  { id: "x2", label: "Monete x2" },
+const UPGRADES: { id: UpgradeId; label: string; icon: string }[] = [
+  { id: "ghost", label: "Ghost", icon: "👻" },
+  { id: "magnet", label: "Magnete", icon: "🧲" },
+  { id: "slowmo", label: "Rallenty", icon: "⏳" },
+  { id: "x2", label: "Monete x2", icon: "✖️" },
+  { id: "turbo", label: "Turbo", icon: "🔥" },
 ];
 
 const MAX_UPGRADE = 5;
@@ -187,49 +189,12 @@ function PlayerBody({ id, detail }: { id: number; detail: PlayerDetail }) {
           revives={player.revives}
           bestScore={player.bestScore}
         />
-        <Panel title="Potenziamenti">
-          <ul className="space-y-3 p-5">
-            {UPGRADES.map((u) => {
-              const level = upgrades[u.id] ?? 0;
-              return (
-                <li key={u.id} className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">{u.label}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      {Array.from({ length: MAX_UPGRADE }, (_, i) => (
-                        <span
-                          key={i}
-                          className={cn(
-                            "h-2.5 w-5 rounded-full",
-                            i < level ? "bg-tg-accent" : "bg-tg-badge-muted"
-                          )}
-                        />
-                      ))}
-                    </div>
-                    <span className="w-8 text-right text-sm font-semibold tabular-nums">
-                      {level}/{MAX_UPGRADE}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-          {Object.keys(player.equipped).length > 0 && (
-            <div className="border-t border-tg-border px-5 py-4">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-tg-muted">
-                Equipaggiato
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(player.equipped).map(([slot, itemId]) => (
-                  <Badge key={slot} tone="muted">
-                    <span>{KIND_LABEL[slot as ItemKind] ?? slot}</span>
-                    <span className="text-tg-primary">{itemName.get(itemId) ?? itemId}</span>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </Panel>
+        <PlayerUpgradesCard
+          id={id}
+          upgrades={upgrades}
+          equipped={player.equipped}
+          itemName={itemName}
+        />
         <OwnedItems id={id} owned={owned} />
       </div>
 
@@ -557,6 +522,135 @@ function OwnedItems({ id, owned }: { id: number; owned: PlayerDetail["owned"] })
         onConfirm={revoke}
         onCancel={() => setRevoking(null)}
       />
+    </Panel>
+  );
+}
+
+function PlayerUpgradesCard({
+  id,
+  upgrades,
+  equipped,
+  itemName,
+}: {
+  id: number;
+  upgrades: PlayerDetail["upgrades"];
+  equipped: Record<string, string>;
+  itemName: Map<string, string>;
+}) {
+  const mutation = useUpdatePlayerUpgradesMutation(id);
+  const [state, setState] = useState<Record<string, number>>(() => ({ ...upgrades }));
+
+  useEffect(() => {
+    setState({ ...upgrades });
+  }, [upgrades]);
+
+  const isDirty = useMemo(() => {
+    return UPGRADES.some((u) => (state[u.id] ?? 0) !== (upgrades[u.id] ?? 0));
+  }, [state, upgrades]);
+
+  const setLevel = (upgradeId: string, level: number) => {
+    setState((prev) => ({
+      ...prev,
+      [upgradeId]: Math.max(0, Math.min(MAX_UPGRADE, level)),
+    }));
+  };
+
+  const handleSave = async () => {
+    try {
+      await mutation.mutateAsync(state);
+      toast.success("Potenziamenti aggiornati");
+    } catch (err) {
+      toast.error(parseApiError(err).message);
+    }
+  };
+
+  return (
+    <Panel title="Potenziamenti">
+      <div className="space-y-4 p-5">
+        <ul className="space-y-3">
+          {UPGRADES.map((u) => {
+            const level = state[u.id] ?? 0;
+            return (
+              <li key={u.id} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-base leading-none">{u.icon}</span>
+                  <span className="text-sm font-medium">{u.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={level <= 0 || mutation.isPending}
+                      onClick={() => setLevel(u.id, level - 1)}
+                      aria-label={`Diminuisci ${u.label}`}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-tg-border bg-tg-surface text-xs font-bold text-tg-primary hover:bg-tg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <div className="flex gap-1 px-1">
+                      {Array.from({ length: MAX_UPGRADE }, (_, i) => (
+                        <button
+                          type="button"
+                          key={i}
+                          disabled={mutation.isPending}
+                          onClick={() => setLevel(u.id, i + 1 === level ? 0 : i + 1)}
+                          title={`Livello ${i + 1}`}
+                          className={cn(
+                            "h-3 w-5 rounded-full transition-colors cursor-pointer",
+                            i < level
+                              ? "bg-tg-accent"
+                              : "bg-tg-badge-muted hover:bg-tg-badge-muted/70"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={level >= MAX_UPGRADE || mutation.isPending}
+                      onClick={() => setLevel(u.id, level + 1)}
+                      aria-label={`Aumenta ${u.label}`}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-tg-border bg-tg-surface text-xs font-bold text-tg-primary hover:bg-tg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="w-7 text-right text-xs font-semibold tabular-nums text-tg-muted">
+                    {level}/{MAX_UPGRADE}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex justify-end pt-2 border-t border-tg-border">
+          <button
+            type="button"
+            disabled={!isDirty || mutation.isPending}
+            onClick={handleSave}
+            className={cn(
+              smallBtn,
+              "bg-tg-accent text-tg-on-accent shadow-card hover:bg-tg-accent-hover"
+            )}
+          >
+            {mutation.isPending ? "Salvataggio…" : "Salva potenziamenti"}
+          </button>
+        </div>
+      </div>
+      {Object.keys(equipped).length > 0 && (
+        <div className="border-t border-tg-border px-5 py-4">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-tg-muted">
+            Equipaggiato
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(equipped).map(([slot, itemId]) => (
+              <Badge key={slot} tone="muted">
+                <span>{KIND_LABEL[slot as ItemKind] ?? slot}</span>
+                <span className="text-tg-primary">{itemName.get(itemId) ?? itemId}</span>
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }

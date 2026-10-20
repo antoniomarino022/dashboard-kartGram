@@ -59,7 +59,7 @@ export interface PlayersPage {
   players: PlayerSummary[];
 }
 
-export type UpgradeId = "turbo" | "magnet" | "slowmo" | "x2";
+export type UpgradeId = "turbo" | "magnet" | "slowmo" | "x2" | "ghost";
 export type PaymentStatus = "pending" | "paid" | "refunded";
 
 export interface Payment {

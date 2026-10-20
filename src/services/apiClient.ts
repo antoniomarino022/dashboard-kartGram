@@ -154,6 +154,10 @@ export const adminService = {
     const { data } = await apiClient.patch<PlayerDetail>(`/admin/players/${id}`, payload);
     return data;
   },
+  updatePlayerUpgrades: async (id: number, upgrades: Record<string, number>): Promise<PlayerDetail> => {
+    const { data } = await apiClient.put<PlayerDetail>(`/admin/players/${id}/upgrades`, { upgrades });
+    return data;
+  },
   grantItem: async (id: number, itemId: string): Promise<PlayerDetail> => {
     const { data } = await apiClient.post<PlayerDetail>(`/admin/players/${id}/items`, { itemId });
     return data;

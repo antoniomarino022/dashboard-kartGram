@@ -110,6 +110,12 @@ export function useUpdatePlayerMutation(id: number) {
   );
 }
 
+export function useUpdatePlayerUpgradesMutation(id: number) {
+  return usePlayerMutation(id, (upgrades: Record<string, number>) =>
+    adminService.updatePlayerUpgrades(id, upgrades)
+  );
+}
+
 export function useGrantItemMutation(id: number) {
   return usePlayerMutation(id, (itemId: string) => adminService.grantItem(id, itemId));
 }
